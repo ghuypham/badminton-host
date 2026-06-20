@@ -32,8 +32,7 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# package manager
-package-lock.json
+# package manager (lockfile committed for reproducible builds + CI npm ci)
 yarn.lock
 pnpm-lock.yaml
 
