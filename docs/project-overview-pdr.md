@@ -1,584 +1,204 @@
 # Project Overview & Product Development Requirements (PDR)
 
-**Project Name**: ClaudeKit Engineer
-**Version**: 2.9.0-beta.2
-**Last Updated**: 2026-01-28
-**Status**: Active Development
-**Repository**: https://github.com/claudekit/claudekit-engineer
+**Project Name**: Badminton Host  
+**Version**: 1.0.0  
+**Last Updated**: 2026-06-20  
+**Status**: MVP Complete  
+**Repository**: Private (self-hosted)
 
 ## Executive Summary
 
-ClaudeKit Engineer is a comprehensive boilerplate template that revolutionizes software development by integrating AI-powered Claude Code workflows into the development workflow. It provides a complete orchestration framework where specialized AI agents collaborate to handle planning, implementation, testing, code review, documentation, and project management.
+Badminton Host is a web platform for managing badminton club sessions, splitting costs fairly among players, and tracking participation. It enables hosts to schedule court bookings, register players (including companions via proxy registration), calculate individual bills, monitor payments, and share anonymous participation reports with club members.
 
 ## Project Purpose
 
 ### Vision
-Enable developers to build professional software projects faster and with higher quality by leveraging AI agent orchestration, automated workflows, and intelligent project management.
+Simplify badminton club administration by providing a single platform for session management, fair cost allocation, payment tracking, and transparent financial reporting.
 
 ### Mission
-Provide a production-ready template that:
-- Accelerates development velocity through AI-powered agent collaboration
-- Enforces best practices and coding standards automatically
-- Maintains comprehensive documentation that evolves with code
-- Ensures code quality through automated testing and review
-- Streamlines git workflows with professional commit standards
+Deliver a lightweight, self-hosted web app that:
+- Enables quick session creation and player registration
+- Accurately splits court + add-on costs among participants
+- Tracks payment status (unpaid → partial → paid)
+- Provides clear financial dashboards for club hosts
+- Shares public participation metrics (no money/phone data leaks)
+- Supports proxy registration (one player pays for companions)
 
-### Value Proposition
-- **10x Faster Planning**: Parallel researcher agents explore solutions simultaneously
-- **Consistent Quality**: Automated code review and testing on every change
-- **Zero Documentation Debt**: Docs update automatically with code changes
-- **Professional Git History**: Clean, conventional commits without AI attribution
-- **Reduced Context Switching**: Specialized agents handle specific concerns
+### Core Value Proposition
+- **Fair Splitting**: Automatic cost allocation based on participation + role
+- **Payment Clarity**: Track who owes what, create payment reminders
+- **Privacy First**: Participation reports hide sensitive financial data
+- **Easy Sharing**: Generate shareable links for bills and attendance reports
+- **Vietnamese-Friendly**: Skill levels in Vietnamese amateur labels (Newbie → Khá+)
 
 ## Target Users
 
-### Primary Users
-1. **Solo Developers**: Building projects faster with AI assistance
-2. **Small Development Teams**: Standardizing workflows and practices
-3. **Open Source Maintainers**: Managing contributions and documentation
-4. **Startups**: Rapid prototyping and MVP development
-5. **Enterprise Teams**: Enforcing architectural standards
+**Primary**: Badminton club hosts/organizers managing 50–500 players
+
+**Secondary**: Individual players viewing their bills and session history
 
 ### User Personas
 
-**Persona 1: Solo Full-Stack Developer**
-- **Needs**: Fast iteration, quality code, minimal documentation overhead
-- **Pain Points**: Context switching, documentation maintenance, testing gaps
-- **Solution**: AI agents handle planning, testing, docs while dev focuses on features
-
-**Persona 2: Technical Lead**
-- **Needs**: Enforce standards, review code, maintain architecture docs
-- **Pain Points**: Code review bottleneck, inconsistent patterns, outdated docs
-- **Solution**: Automated reviews, standardized workflows, living documentation
-
-**Persona 3: Open Source Maintainer**
-- **Needs**: Scale contributions, maintain quality, clear documentation
-- **Pain Points**: Limited time, varying contribution quality, doc rot
-- **Solution**: Consistent review process, automated standards enforcement
-
-## Key Features & Capabilities
-
-### 1. Multi-Agent Orchestration System
-
-**Agent Types**:
-- **Planning Agents**: Research, architecture, technical decisions
-- **Implementation Agents**: Code generation, feature development
-- **Quality Agents**: Testing, code review, security analysis
-- **Documentation Agents**: Auto-updating docs, API references
-- **Management Agents**: Project tracking, progress monitoring, git operations
-
-**Orchestration Patterns**:
-- **Sequential Chaining**: Planning → Implementation → Testing → Review → Deploy
-- **Parallel Execution**: Multiple researchers exploring different approaches
-- **Query Fan-Out**: Simultaneous investigation of technical solutions
-
-**Performance Optimization**:
-- **Scout Block Hook**: Cross-platform hook system blocking heavy directories
-  - Automatic platform detection (Windows/Unix/WSL)
-  - Zero-configuration setup
-  - Blocks: node_modules, __pycache__, .git/, dist/, build/
-  - Improves AI agent response time and token efficiency
-
-### 2. Comprehensive Slash Commands
-
-**Core Development Commands**:
-- `/ck:plan` - Research and create implementation plans (`--deep` for major refactors, `--tdd` for tests-first plans)
-- `/ck:cook` - Implement features with full workflow (`--tdd` for tests-first refactors)
-- `/ck:test` - Run comprehensive test suites
-- `/ck:ask` - Expert technical consultation
-- `/ck:bootstrap` - Initialize new projects end-to-end
-- `/ck:brainstorm` - Solution ideation and evaluation
-- `/ck:debug` - Deep issue analysis
-
-**Skill Organization** (`.claude/skills/`):
-Command behavior is implemented via skill directories:
-- `bootstrap/` - Project initialization workflows
-- `docs/` - Documentation generation and updates
-- `ck-plan/` - Planning workflows and validators
-- `code-review/` - Code review workflows
-- `test/` - Testing and validation workflows
-
-### 3. Extensive Skills Library (47+ Skills)
-
-**Organized by Domain** (`.claude/skills/`):
-
-**AI & Vision**: ai-artist, ai-multimodal, agent-browser
-**Authentication**: better-auth
-**Backend & Databases**: backend-development, databases
-**Code Quality & Debugging**: code-review, debug, sequential-thinking
-**Content & Copywriting**: copywriting, brainstorm
-**Design & Frontend**: frontend-design, frontend-development, ui-styling, ui-ux-pro-max, web-design-guidelines
-**DevOps & Infrastructure**: devops, git
-**Documentation**: docs-seeker, repomix, markdown-novel-viewer, document-skills
-**Framework Integration**: web-frameworks, react-best-practices, shopify
-**Game Development**: threejs, shader
-**Media Processing**: media-processing (FFmpeg, ImageMagick)
-**MCP Tools**: mcp-builder, mcp-management
-**Mobile Development**: mobile-development
-**Project Planning**: ck-plan, plans-kanban
-**Skill Development**: skill-creator, template-skill
-**Testing & QA**: web-testing
-**Visualization**: mermaidjs-v11
-**Workflow Tools**: cook, research, scout, payment-integration
-
-### 4. Automated Release Management
-
-**Features**:
-- Semantic versioning (MAJOR.MINOR.PATCH)
-- Conventional commit enforcement
-- Automated changelog generation
-- GitHub releases with assets
-- Optional NPM publishing
-- Git hooks for commit validation
-
-**Commit Types**:
-- `feat:` → Minor version bump
-- `fix:` → Patch version bump
-- `BREAKING CHANGE:` → Major version bump
-- `docs:`, `refactor:`, `test:`, `ci:` → Patch bump
-
-### 5. Development Workflow Automation
-
-**Pre-Commit**:
-- Commit message linting (conventional commits)
-- Optional test execution
-
-**Pre-Push**:
-- Linting validation
-- Test suite execution
-- Build verification
-
-**CI/CD**:
-- GitHub Actions integration
-- Automated releases on main branch
-- Test automation
-- Build validation
-
-## Technical Requirements
-
-### Functional Requirements
-
-**FR1: Agent Orchestration**
-- Support sequential and parallel agent execution
-- Enable agent-to-agent communication via file system
-- Maintain context across agent handoffs
-- Track agent task completion
-
-**FR2: Command System**
-- Parse slash commands with arguments
-- Route to appropriate agent workflows
-- Support nested commands (e.g., `/ck:fix:ci`)
-- Provide command discovery and help
-
-**FR3: Documentation Management**
-- Auto-generate codebase summaries with repomix
-- Keep docs synchronized with code changes
-- Maintain project roadmap and changelog
-- Update API documentation automatically
-
-**FR4: Quality Assurance**
-- Run tests before commits
-- Perform code review automatically
-- Check type safety and compilation
-- Validate security best practices
-
-**FR5: Git Workflow**
-- Enforce conventional commits
-- Scan for secrets before commits
-- Generate professional commit messages
-- Create clean PR descriptions
-
-**FR6: Project Bootstrapping**
-- Initialize git repository
-- Gather requirements through questions
-- Research tech stacks
-- Generate project structure
-- Create initial documentation
-- Set up CI/CD
-
-### Non-Functional Requirements
-
-**NFR1: Performance**
-- Command execution < 5 seconds for simple operations
-- Parallel agent spawning for independent tasks
-- Efficient file system operations
-- Optimized context loading
-
-**NFR2: Reliability**
-- Handle agent failures gracefully
-- Provide rollback mechanisms
-- Validate agent outputs
-- Error recovery and retry logic
-
-**NFR3: Usability**
-- Clear command syntax and documentation
-- Helpful error messages
-- Progress indicators for long operations
-- Comprehensive command help
-
-**NFR4: Maintainability**
-- Modular agent definitions
-- Reusable workflow templates
-- Clear separation of concerns
-- Self-documenting code and configs
-
-**NFR5: Security**
-- Secret detection before commits
-- No AI attribution in public commits
-- Secure handling of credentials
-- Security best practice enforcement
-
-**NFR6: Scalability**
-- Support projects of any size
-- Handle large codebases efficiently
-- Scale agent parallelization
-- Manage complex dependency graphs
-
-## Success Metrics
-
-### Adoption Metrics
-- GitHub stars and forks
-- NPM package downloads
-- Active users and installations
-- Community engagement (issues, discussions, PRs)
-
-### Performance Metrics
-- Average time to bootstrap new project: < 10 minutes
-- Planning to implementation cycle time: 50% reduction
-- Documentation coverage: > 90%
-- Test coverage: > 80%
-- Code review time: 75% reduction
-
-### Quality Metrics
-- Conventional commit compliance: 100%
-- Zero secrets in commits: 100%
-- Automated test pass rate: > 95%
-- Documentation freshness: < 24 hours lag
-
-### Developer Experience Metrics
-- Time to first commit: < 5 minutes
-- Developer onboarding time: 50% reduction
-- Context switching overhead: 60% reduction
-- Satisfaction score: > 4.5/5.0
-
-## Technical Architecture
-
-### Core Components
-
-**1. Agent Framework**
-- Agent definition files (Markdown with frontmatter)
-- Agent orchestration engine
-- Context management system
-- Communication protocol (file-based reports)
-
-**2. Command System**
-- Command parser and router
-- Argument handling ($ARGUMENTS, $1, $2, etc.)
-- Command composition and nesting
-- Help and discovery system
-
-**3. Workflow Engine**
-- Sequential execution support
-- Parallel task scheduling
-- Dependency resolution
-- Error handling and recovery
-
-**4. Documentation System**
-- Repomix integration for codebase compaction
-- Template-based doc generation
-- Auto-update triggers
-- Version tracking
-
-**5. Quality System**
-- Test runner integration
-- Code review automation
-- Type checking and linting
-- Security scanning
-
-**6. Release System**
-- Semantic versioning engine
-- Changelog generation
-- GitHub release creation
-- Asset packaging
-
-### Technology Stack
-
-**Runtime**:
-- Node.js >= 18.0.0
-- Bash scripting (Unix hooks)
-- PowerShell scripting (Windows hooks)
-- Cross-platform hook dispatcher (Node.js)
-
-**AI Platforms**:
-- Anthropic Claude (Sonnet 4, Opus 4)
-- OpenRouter integration
-- Google Gemini (for docs-manager)
-- Grok Code (for git-manager)
-
-**Development Tools**:
-- Semantic Release
-- Commitlint
-- Husky (git hooks)
-- Repomix (codebase compaction)
-- Scout Block Hook (performance optimization)
-
-**CI/CD**:
-- GitHub Actions
-- Conventional Commits
-- Automated versioning
-
-### Integration Points
-
-**MCP Tools**:
-- **context7**: Read latest documentation
-- **sequential-thinking**: Structured problem solving
-- **SearchAPI**: Google and YouTube search
-- **review-website**: Web content extraction
-- **VidCap**: Video transcript analysis
-
-**External Services**:
-- GitHub (Actions, Releases, PRs)
-- Discord (notifications)
-- NPM (optional package publishing)
-
-## Use Cases
-
-### UC1: Bootstrap New Project
-**Actor**: Developer
-**Goal**: Create new project from scratch
-**Flow**:
-1. Run `/bootstrap` command
-2. Answer requirement questions
-3. AI researches tech stacks
-4. Review and approve recommendations
-5. AI generates project structure
-6. AI implements initial features
-7. AI creates tests and documentation
-8. Project ready for development
-
-**Outcome**: Fully functional project with tests, docs, CI/CD in < 10 minutes
-
-### UC2: Implement New Feature
-**Actor**: Developer
-**Goal**: Add feature with full workflow
-**Flow**:
-1. Run `/ck:cook "add user authentication"` or `/ck:cook "refactor auth middleware" --tdd`
-2. Planner creates implementation plan
-3. Researcher agents explore auth solutions
-4. Developer reviews and approves plan
-5. AI implements code
-6. AI writes comprehensive tests
-7. AI performs code review
-8. AI updates documentation
-9. AI commits with conventional message
-
-**Outcome**: Feature complete with tests, docs, and clean git history
-
-### UC3: Debug Production Issue
-**Actor**: Developer
-**Goal**: Identify and fix production bug
-**Flow**:
-1. Run `/ck:debug "API timeout errors"`
-2. Debugger agent analyzes logs and system
-3. Root cause identified
-4. Fix plan created
-5. AI implements solution
-6. Tests validate fix
-7. Code review confirms quality
-8. Commit and deploy
-
-**Outcome**: Bug fixed with comprehensive testing and documentation
-
-### UC4: Manage Commits and Deployments
-**Actor**: Developer
-**Goal**: Maintain professional git history
-**Flow**:
-1. Developer completes feature implementation
-2. Run tests via `/ck:test` command
-3. Code review via `/ck:cook` workflow
-4. Conventional commit via git-manager agent
-5. Push to feature branch
-6. Create PR via GitHub interface
-
-**Outcome**: Professional commit history and clean PR ready for review
-
-### UC5: Update Documentation
-**Actor**: Project Manager
-**Goal**: Ensure docs are current
-**Flow**:
-1. Run `/ck:docs update`
-2. Docs manager scans codebase
-3. Generates fresh summary with repomix
-4. Identifies outdated sections
-5. Updates API docs, guides, architecture
-6. Validates naming conventions
-7. Creates update report
-
-**Outcome**: Documentation synchronized with code
-
-## Constraints & Limitations
-
-### Technical Constraints
-- Requires Node.js >= 18.0.0
-- Depends on Claude Code CLI
-- File-based communication has I/O overhead
-- Token limits on AI model context windows
-
-### Operational Constraints
-- Requires API keys for AI platforms
-- GitHub Actions minutes for CI/CD
-- Internet connection for MCP tools
-- Storage for repomix output files
-
-### Design Constraints
-- Agent definitions must be Markdown with frontmatter
-- Commands follow slash syntax
-- Reports use specific naming conventions
-- Conventional commits required
-
-## Risks & Mitigation
-
-### Risk 1: AI Model API Failures
-**Impact**: High
-**Likelihood**: Medium
-**Mitigation**: Retry logic, fallback models, graceful degradation
-
-### Risk 2: Context Window Limits
-**Impact**: Medium
-**Likelihood**: High
-**Mitigation**: Repomix for code compaction, selective context loading, chunking
-
-### Risk 3: Agent Coordination Failures
-**Impact**: High
-**Likelihood**: Low
-**Mitigation**: Validation checks, error recovery, rollback mechanisms
-
-### Risk 4: Secret Exposure
-**Impact**: Critical
-**Likelihood**: Low
-**Mitigation**: Pre-commit scanning, .gitignore enforcement, security reviews
-
-### Risk 5: Documentation Drift
-**Impact**: Medium
-**Likelihood**: Medium
-**Mitigation**: Automated triggers, freshness checks, validation workflows
-
-## Future Roadmap
-
-### Phase 1: Foundation (Complete - v1.0-1.8)
-- ✅ Core agent framework
-- ✅ Slash command system
-- ✅ Automated releases
-- ✅ Skills library
-- ✅ Documentation system
-
-### Phase 2: Enhancement (Current)
-- 🔄 Additional skills (GCP, AWS, Azure)
-- 🔄 UI/UX improvements
-- 🔄 Performance optimization
-- 🔄 Enhanced error handling
-
-### Phase 3: Advanced Features (Planned)
-- 📋 Visual workflow builder
-- 📋 Custom agent creator UI
-- 📋 Team collaboration features
-- 📋 Analytics and insights dashboard
-- 📋 Multi-language support
-
-### Phase 4: Enterprise (Future)
-- 📋 Self-hosted deployment
-- 📋 Advanced security features
-- 📋 Compliance automation
-- 📋 Custom integrations
-- 📋 Enterprise support
-
-## Dependencies & Integration
-
-### Required Dependencies
-- Node.js runtime environment
-- Git version control
-- Claude Code CLI
-- API keys for AI platforms
-
-### Optional Dependencies
-- Discord webhook for notifications
-- GitHub repository for CI/CD
-- NPM account for publishing
-
-### Integrations
-- GitHub Actions
-- Semantic Release
-- Commitlint
-- Husky
-- Repomix
-- Various MCP servers
-
-## Compliance & Standards
-
-### Coding Standards
-- YAGNI (You Aren't Gonna Need It)
-- KISS (Keep It Simple, Stupid)
-- DRY (Don't Repeat Yourself)
-- Files < 500 lines
-- Comprehensive error handling
-- Security-first development
-
-### Git Standards
-- Conventional Commits
-- Clean commit history
-- No AI attribution
-- No secrets in commits
-- Professional PR descriptions
-
-### Documentation Standards
-- Markdown format
-- Up-to-date (< 24 hours)
-- Comprehensive coverage
-- Clear examples
-- Proper versioning
-
-### Testing Standards
-- Unit test coverage > 80%
-- Integration tests for workflows
-- Error scenario coverage
-- Performance validation
-- Security testing
-
-## Glossary
-
-- **Agent**: Specialized AI assistant with specific expertise and responsibilities
-- **Slash Command**: Shortcut that triggers agent workflows (e.g., `/ck:plan`)
-- **Skill**: Reusable knowledge module for specific technologies or patterns
-- **MCP**: Model Context Protocol for AI tool integration
-- **Repomix**: Tool for compacting codebases into AI-friendly format
-- **Sequential Chaining**: Running agents one after another with dependencies
-- **Parallel Execution**: Running multiple agents simultaneously
-- **Query Fan-Out**: Spawning multiple researchers to explore different approaches
-- **Conventional Commits**: Structured commit message format (type(scope): description)
-
-## Appendix
-
-### Related Documentation
-- [Codebase Summary](./codebase-summary.md)
-- [Code Standards](./code-standards.md)
-- [System Architecture](./system-architecture.md)
-- [Skills Reference](../guide/SKILLS.md)
-
-### External Resources
-- [Claude Code Documentation](https://docs.claude.com/en/docs/claude-code/overview)
-- [Conventional Commits](https://conventionalcommits.org/)
-- [Semantic Versioning](https://semver.org/)
-- [Keep a Changelog](https://keepachangelog.com/)
-
-### Support & Community
-- GitHub Issues: https://github.com/claudekit/claudekit-engineer/issues
-- Discussions: https://github.com/claudekit/claudekit-engineer/discussions
-- Repository: https://github.com/claudekit/claudekit-engineer
-
-## Unresolved Questions
-
-1. **Performance Benchmarks**: Need to establish baseline metrics for agent execution times
-2. **Multi-Repository Support**: How to handle projects spanning multiple repositories?
-3. **Custom AI Model Support**: Should we support other AI platforms beyond Claude and OpenRouter?
-4. **Agent Marketplace**: Community-contributed agents and skills distribution mechanism?
-5. **Real-Time Collaboration**: How to handle multiple developers using agents simultaneously?
+**Persona 1: Club Organizer (Huy)**
+- **Needs**: Quick session setup, fair cost splitting, payment tracking, club analytics
+- **Pain Points**: Manual spreadsheets, calculation errors, payment follow-up overhead
+- **Solution**: Badminton Host automates cost splitting, tracks payments, generates reports
+
+**Persona 2: Regular Player**
+- **Needs**: Know their bill, pay on time, see attendance stats
+- **Pain Points**: Unclear cost breakdowns, no payment reminder, missing session history
+- **Solution**: Individual bill pages with clear breakdown, shareable payment links
+
+**Persona 3: Visiting Guest**
+- **Needs**: Register for session, know their cost, pay their share
+- **Pain Points**: External payment coordination, uncertain of total cost
+- **Solution**: Public session page + shareable bill (no account needed)
+
+## Key Features (MVP – Session 7)
+
+### 1. Session Management
+- Create, edit, and manage badminton sessions (date, venue, courts, player list)
+- Manual cost override (`manual_total`) for flexibility
+- Multiple court bookings per session + add-on costs (food, transportation)
+- Session status tracking (draft → open → settled)
+
+### 2. Smart Cost Splitting
+- Automatic per-person cost calculation (court cost / participant count)
+- Add-on items allocated fairly
+- Support for "should_charge" flag (players who participate but don't pay)
+- Accurate financial reporting across all participants
+
+### 3. Player Registration & Skill Tracking
+- Register players with Vietnamese skill levels (0–10: Newbie → Khá+)
+- Track attendance status (attended / absent / waived)
+- Support for one-time guests (no membership required)
+- Proxy registration: one player can register + pay for up to 5 companions
+
+### 4. Payment Management
+- Track payment status per participant: unpaid → partial → paid/waived
+- Mark partial payments with exact amount
+- Payment update timestamps for auditing
+- Shareable bill tokens (public link to individual's session bill)
+- Share bill link from debts page for payment reminders
+
+### 5. Admin Reports Dashboard
+- **Finance**: Total collected, outstanding, session costs, pending payments
+- **Sessions**: Per-session breakdown (participant count, collected, outstanding)
+- **Members**: Top participants, top debtors, attendance rates
+- **Payments**: Recent payment history (30-item limit)
+- Date range filtering (all-time, month, custom range)
+
+### 6. Public Participation Reports
+- Shareable participation report (token-gated, time-range customizable)
+- Shows member names + session count only (NO money, NO phone)
+- Optional guest list toggle (host controls visibility)
+- Privacy headers prevent caching/referrer leaks
+- Customizable time range (All / this month / custom dates)
+
+### 7. UI Design System
+- Cream background (#F5F3F0) + white card design
+- Shadow scale for visual depth (elevation system)
+- Inline SVG icon component
+- Responsive mobile-first layout
+- Consistent button, badge, chip, modal components
+
+## Technical Specifications
+
+**Architecture**: Full-stack monolithic web app (React frontend + Node.js backend + SQLite)
+
+**Frontend**:
+- React 18 + TypeScript
+- Vite build tool
+- Tailwind CSS + custom design system
+- Session-based auth
+
+**Backend**:
+- Node.js + Express-like routing
+- SQLite database (WAL mode for concurrent access)
+- Bcrypt password hashing
+- RESTful JSON API
+
+**Database**:
+- 6 core tables (settings, members, sessions, session_courts, session_participants, cost_items)
+- 8 migrations to date (latest: 008_public_report_settings)
+- Soft deletes on all tables for safe recovery
+- Foreign key constraints (including self-FK for proxy registration)
+
+**Key Endpoints**:
+- `GET /api/admin/reports` — Reports dashboard (date-filtered)
+- `POST /api/sessions` — Create session
+- `POST /api/sessions/:id/participants` — Register player (with optional companions)
+- `POST /api/sessions/:id/participants/:pid/payments` — Mark payment status
+- `GET /api/public/session/:id` — Public session view (with venue map)
+- `GET /api/public/bill/:token` — Shareable bill
+- `GET /api/public/report/:token` — Participation report (token-gated, privacy-safe)
+
+## Success Criteria
+
+| Criterion | Target | Status |
+|-----------|--------|--------|
+| Session creation + registration | <2 min | ✅ |
+| Cost splitting accuracy | 100% | ✅ |
+| Payment tracking completeness | All statuses tracked | ✅ |
+| Report generation | <1 sec | ✅ |
+| Bill sharing (public) | Secure token access | ✅ |
+| Participation report | Privacy-safe (no money/phone) | ✅ |
+| Proxy registration | Support 5 companions per registrant | ✅ |
+| Mobile usability | Responsive design | ✅ |
+
+## Known Limitations
+
+1. **SQLite scalability**: Handles small-to-medium clubs (< 100k rows); PostgreSQL for larger scale
+2. **No payment gateway**: Manual cash/transfer settlement (no Stripe/SePay integration yet)
+3. **No recurring sessions**: Each session created manually (no weekly templates)
+4. **No SMS/email notifications**: Payment reminders via shareable links only
+5. **No member avatars**: Names only, no profile photos
+
+## Roadmap (Post-MVP)
+
+- **Phase 8** (Q3 2026): Comprehensive test suite + E2E tests
+- **Phase 9** (Q3 2026): Payment gateway integration (Stripe or SePay)
+- **Phase 10** (Q4 2026): Mobile app (React Native) or PWA
+- **Phase 11** (Q4 2026): Advanced analytics (charts, trends, skill progression)
+- **Phase 12+**: Recurring sessions, SMS notifications, multi-club support
+
+## Deployment
+
+**Current**: Self-hosted on Huy's server (Docker container)  
+**Database**: SQLite file-based (data/badminton.db)  
+**Backups**: Manual backup strategy (data/ directory versioned)  
+**Scaling**: Single-process Node.js (vertical scaling only)
+
+## Acceptance Criteria (MVP Session 7)
+
+- ✅ UI redesigned with cream + card system applied across all pages
+- ✅ Reports dashboard live with finance/sessions/members/payments aggregates
+- ✅ Proxy registration working (paid_by FK, companion grouping in debts)
+- ✅ Public participation report shareable + token-gated
+- ✅ Customizable report share control (time range + guest toggle)
+- ✅ All 8 migrations in place
+- ✅ Vietnamese skill levels (0–10) fully integrated
+- ✅ Public bill + session pages with venue map
+- ✅ Debts page refactored (person-centric, drill-down, share link)
+
+## Metrics (as of Session 7)
+
+- **Lines of Code**: ~2,500 (React components + services)
+- **TypeScript Coverage**: 100%
+- **Database Migrations**: 8 active
+- **API Endpoints**: 15+ routes
+- **Test Coverage**: TBD (to be added in Phase 8)
+- **Documentation**: codebase-summary, system-architecture, project-roadmap, this PDR
+
+## Team
+
+**Developer**: Huy Pham (solo)  
+**Role**: Full-stack (architecture, backend, frontend, DB, ops)  
+**Development Workflow**: Feature-driven sessions (1–2 week iterations)
+
+## Next Session Priorities
+
+1. Add comprehensive test suite (unit + integration + E2E)
+2. Evaluate PostgreSQL migration for scalability
+3. Collect user feedback on UX (debts page, reports dashboard, payment flow)
+4. Plan Phase 8+ features (payment gateway, mobile app, advanced analytics)
