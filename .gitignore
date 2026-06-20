@@ -62,6 +62,7 @@ plans/**/*
 !plans/templates/*
 screenshots/*
 docs/screenshots/*
+!docs/screenshots/rm-*.png
 logs.txt
 test-ck
 __pycache__
