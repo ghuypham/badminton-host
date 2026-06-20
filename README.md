@@ -1,5 +1,8 @@
 # 🏸 Badminton Host
 
+[![CI](https://github.com/ghuypham/badminton-host/actions/workflows/ci.yml/badge.svg)](https://github.com/ghuypham/badminton-host/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 Web app **mobile-first** giúp host/CLB cầu lông quản lý buổi đánh, điểm danh, **chia tiền tự động**, gửi **bill link riêng từng người**, theo dõi **công nợ** và **báo cáo tham gia**. Self-host bằng Docker, SQLite là source of truth — restart không mất dữ liệu.
 
 > Một host · một CLB · không cần member đăng nhập. Admin là người dùng auth duy nhất.
@@ -156,3 +159,9 @@ docs/              # tài liệu dự án + screenshots
 ```
 
 Tài liệu chi tiết: [`docs/`](docs/) (codebase-summary, system-architecture, project-overview-pdr, roadmap).
+
+---
+
+## 📄 License
+
+[MIT](LICENSE) © 2026 HuyPG
