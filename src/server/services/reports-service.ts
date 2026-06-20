@@ -377,7 +377,7 @@ export interface ParticipationEntry {
 }
 
 export interface PublicParticipationReport {
-  generatedAllTime: true;
+  generatedAllTime: boolean;
   members: ParticipationEntry[];  // has member_id (CLB members)
   guests?: ParticipationEntry[];  // member_id IS NULL; omitted when show_guests=0
 }
@@ -385,8 +385,21 @@ export interface PublicParticipationReport {
 // Count sessions attended (status='attended' OR should_charge=1 — matches how app records
 // confirmed attendance/charges). Excludes soft-deleted sessions/participants.
 // Draft sessions (status='draft') are excluded; only 'open' and 'settled' count.
-export function getPublicParticipationReport(showGuests: boolean): PublicParticipationReport {
+// Optional range: { from, to } ISO yyyy-mm-dd; absent = all-time (unchanged behaviour).
+export function getPublicParticipationReport(
+  showGuests: boolean,
+  range?: { from?: string; to?: string },
+): PublicParticipationReport {
   const db = getDb();
+
+  // Build optional date-range conditions for sessions table
+  const dateConditions: string[] = [];
+  const dateParams: string[] = [];
+  if (range?.from) { dateConditions.push('s.session_date >= ?'); dateParams.push(range.from); }
+  if (range?.to)   { dateConditions.push('s.session_date <= ?'); dateParams.push(range.to); }
+  const dateFilter = dateConditions.length > 0 ? `AND ${dateConditions.join(' AND ')}` : '';
+
+  const isAllTime = dateConditions.length === 0;
 
   // CLB members: participant rows linked to a member (member_id NOT NULL)
   const memberRows = db
@@ -401,10 +414,11 @@ export function getPublicParticipationReport(showGuests: boolean): PublicPartici
          AND m.deleted_at IS NULL
          AND s.status IN ('open', 'settled')
          AND (sp.status = 'attended' OR sp.should_charge = 1)
+         ${dateFilter}
        GROUP BY sp.member_id
        ORDER BY cnt DESC`,
     )
-    .all() as { name: string; cnt: number }[];
+    .all(...dateParams) as { name: string; cnt: number }[];
 
   const members: ParticipationEntry[] = memberRows.map((r) => ({
     name: r.name,
@@ -412,7 +426,7 @@ export function getPublicParticipationReport(showGuests: boolean): PublicPartici
   }));
 
   if (!showGuests) {
-    return { generatedAllTime: true, members };
+    return { generatedAllTime: isAllTime, members };
   }
 
   // Guests: participant rows with no member_id (khách vãng lai), grouped by name
@@ -426,17 +440,18 @@ export function getPublicParticipationReport(showGuests: boolean): PublicPartici
          AND s.deleted_at IS NULL
          AND s.status IN ('open', 'settled')
          AND (sp.status = 'attended' OR sp.should_charge = 1)
+         ${dateFilter}
        GROUP BY sp.name
        ORDER BY cnt DESC`,
     )
-    .all() as { name: string; cnt: number }[];
+    .all(...dateParams) as { name: string; cnt: number }[];
 
   const guests: ParticipationEntry[] = guestRows.map((r) => ({
     name: r.name,
     sessionCount: r.cnt,
   }));
 
-  return { generatedAllTime: true, members, guests };
+  return { generatedAllTime: isAllTime, members, guests };
 }
 
 // ── Combined report ───────────────────────────────────────────────────────────

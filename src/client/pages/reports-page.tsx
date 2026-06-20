@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../api/client.ts';
 import { formatVnd, formatDate } from '../lib/format.ts';
 import { Icon } from '../components/icon.tsx';
+import { ShareBillButton } from '../components/share-bill-button.tsx';
 
 // ── Types (mirrors backend ReportResult) ─────────────────────────────────────
 
@@ -146,6 +147,9 @@ export function ReportsPage() {
         </div>
       </div>
 
+      {/* Share participation report block */}
+      <ReportShareSection />
+
       {err && <p className="text-sm text-danger">{err}</p>}
 
       {loading && <p className="text-sm text-muted">Đang tải…</p>}
@@ -157,6 +161,234 @@ export function ReportsPage() {
           <MembersSection stats={data.members} />
           <PaymentsSection payments={data.payments} />
         </>
+      )}
+    </div>
+  );
+}
+
+// ── Report share section ──────────────────────────────────────────────────────
+
+type RangePreset = 'all' | 'month' | 'custom';
+
+interface ShareState {
+  enabled: boolean;
+  token: string | null;
+  show_guests: boolean;
+}
+
+// Compute first and last day of current month in ICT (Asia/Ho_Chi_Minh)
+function currentMonthRange(): { from: string; to: string } {
+  const now = new Date(
+    new Date().toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }),
+  );
+  const year = now.getFullYear();
+  const month = now.getMonth(); // 0-indexed
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const from = `${year}-${pad(month + 1)}-01`;
+  // Last day: day 0 of next month = last day of this month
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  const to = `${year}-${pad(month + 1)}-${pad(lastDay)}`;
+  return { from, to };
+}
+
+// Build the shareable URL from the current share state + chosen range
+function buildShareUrl(token: string, preset: RangePreset, customFrom: string, customTo: string): string {
+  const base = `${window.location.origin}/r/${token}`;
+  if (preset === 'all') return base;
+  const qs = new URLSearchParams();
+  if (preset === 'month') {
+    const { from, to } = currentMonthRange();
+    qs.set('from', from);
+    qs.set('to', to);
+  } else {
+    if (customFrom) qs.set('from', customFrom);
+    if (customTo) qs.set('to', customTo);
+  }
+  const str = qs.toString();
+  return str ? `${base}?${str}` : base;
+}
+
+function ReportShareSection() {
+  const [share, setShare] = useState<ShareState | null>(null);
+  const [loadErr, setLoadErr] = useState('');
+  const [toggling, setToggling] = useState(false);
+  // Range state
+  const [preset, setPreset] = useState<RangePreset>('all');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
+
+  useEffect(() => {
+    api
+      .get<ShareState>('/admin/report-share')
+      .then(setShare)
+      .catch((e) => setLoadErr(e?.message ?? 'Lỗi tải trạng thái chia sẻ'));
+  }, []);
+
+  const enableShare = async () => {
+    setToggling(true);
+    try {
+      const s = await api.put<ShareState>('/admin/report-share/enable', { enabled: true });
+      setShare(s);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Lỗi bật chia sẻ';
+      setLoadErr(msg);
+    } finally {
+      setToggling(false);
+    }
+  };
+
+  const toggleGuests = async () => {
+    if (!share) return;
+    setToggling(true);
+    try {
+      const s = await api.put<ShareState>('/admin/report-share/guests', { show: !share.show_guests });
+      setShare(s);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Lỗi cập nhật';
+      setLoadErr(msg);
+    } finally {
+      setToggling(false);
+    }
+  };
+
+  if (loadErr) {
+    return (
+      <div className="card space-y-2">
+        <h2 className="section-title">Chia sẻ báo cáo tham gia</h2>
+        <p className="text-sm text-danger">{loadErr}</p>
+      </div>
+    );
+  }
+
+  if (!share) {
+    return (
+      <div className="card space-y-2">
+        <h2 className="section-title">Chia sẻ báo cáo tham gia</h2>
+        <p className="text-sm text-muted">Đang tải…</p>
+      </div>
+    );
+  }
+
+  const shareUrl = share.enabled && share.token
+    ? buildShareUrl(share.token, preset, customFrom, customTo)
+    : null;
+
+  return (
+    <div className="card space-y-4">
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="section-title mb-0">Chia sẻ báo cáo tham gia</h2>
+        {share.enabled && (
+          <button
+            type="button"
+            className="btn-ghost btn-sm text-danger"
+            onClick={async () => {
+              setToggling(true);
+              try {
+                const s = await api.put<ShareState>('/admin/report-share/enable', { enabled: false });
+                setShare(s);
+              } catch (e: unknown) {
+                const msg = e instanceof Error ? e.message : 'Lỗi';
+                setLoadErr(msg);
+              } finally {
+                setToggling(false);
+              }
+            }}
+            disabled={toggling}
+          >
+            Tắt
+          </button>
+        )}
+      </div>
+
+      {!share.enabled ? (
+        /* Disabled state: show enable button */
+        <div className="space-y-2">
+          <p className="text-sm text-muted">
+            Báo cáo tham gia chưa được chia sẻ. Bật để tạo link công khai (chỉ hiển thị số buổi tham gia, không có tiền).
+          </p>
+          <button
+            type="button"
+            className="btn-primary btn-sm"
+            onClick={enableShare}
+            disabled={toggling}
+          >
+            <Icon name="share" size={15} />
+            Bật chia sẻ
+          </button>
+        </div>
+      ) : (
+        /* Enabled state: show controls */
+        <div className="space-y-4">
+          {/* Show guests toggle */}
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="text-sm font-semibold">Hiển thị khách vãng lai</div>
+              <div className="text-xs text-muted">Thêm mục "Khách vãng lai" vào báo cáo</div>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={share.show_guests}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus-visible:outline-none disabled:opacity-50 ${share.show_guests ? 'bg-primary' : 'bg-surface-sunken'}`}
+              onClick={toggleGuests}
+              disabled={toggling}
+            >
+              <span
+                className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform duration-200 ${share.show_guests ? 'translate-x-5' : 'translate-x-0'}`}
+              />
+            </button>
+          </div>
+
+          {/* Time range selector */}
+          <div className="space-y-2">
+            <div className="text-sm font-semibold">Khoảng thời gian</div>
+            <div className="flex flex-wrap gap-2">
+              {(['all', 'month', 'custom'] as const).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  className={`chip ${preset === p ? 'chip-active' : ''}`}
+                  onClick={() => setPreset(p)}
+                >
+                  {p === 'all' ? 'Tất cả' : p === 'month' ? 'Tháng này' : 'Tùy chọn'}
+                </button>
+              ))}
+            </div>
+
+            {preset === 'custom' && (
+              <div className="flex flex-wrap gap-3 pt-1">
+                <div className="flex flex-col gap-1 flex-1 min-w-0">
+                  <label className="label">Từ ngày</label>
+                  <input
+                    type="date"
+                    className="input"
+                    value={customFrom}
+                    onChange={(e) => setCustomFrom(e.target.value)}
+                  />
+                </div>
+                <div className="flex flex-col gap-1 flex-1 min-w-0">
+                  <label className="label">Đến ngày</label>
+                  <input
+                    type="date"
+                    className="input"
+                    value={customTo}
+                    onChange={(e) => setCustomTo(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Share URL display + copy/share */}
+          {shareUrl && (
+            <div className="space-y-2">
+              <div className="text-xs text-muted break-all bg-surface-sunken rounded-lg px-3 py-2 font-mono select-all">
+                {shareUrl}
+              </div>
+              <ShareBillButton billUrl={shareUrl} />
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

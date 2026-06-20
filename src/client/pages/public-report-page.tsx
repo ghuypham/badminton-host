@@ -1,8 +1,9 @@
 // Public report page (/r/:token) — no auth, no AppShell.
-// Shows all-time participation stats: CLB members + guests (if returned by server).
+// Shows participation stats: CLB members + guests (if returned by server).
+// Supports optional ?from=yyyy-mm-dd&to=yyyy-mm-dd query params for date range filtering.
 // Privacy: server never returns money or phone; this page renders counts only.
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { api, ApiClientError } from '../api/client.ts';
 import { Icon } from '../components/icon.tsx';
 
@@ -13,7 +14,7 @@ interface ParticipationEntry {
 
 interface PublicReportResponse {
   club: { name: string };
-  generatedAllTime: true;
+  generatedAllTime: boolean;
   members: ParticipationEntry[];
   guests?: ParticipationEntry[];
 }
@@ -21,6 +22,33 @@ interface PublicReportResponse {
 // Avatar initials: last 2 words, first char each
 const initials = (name: string) =>
   name.trim().split(/\s+/).slice(-2).map((w) => w[0]?.toUpperCase() ?? '').join('') || '?';
+
+// Format a range label for display. If both dates are in same month → "Tháng M/YYYY".
+// Otherwise show "DD/MM/YYYY – DD/MM/YYYY". Falls back to "Toàn thời gian".
+function formatRangeLabel(from?: string | null, to?: string | null): string {
+  if (!from && !to) return 'Toàn thời gian';
+
+  const fmt = (iso: string) =>
+    new Intl.DateTimeFormat('vi-VN', {
+      timeZone: 'Asia/Ho_Chi_Minh',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    }).format(new Date(iso));
+
+  // Single-month shortcut: e.g. from=2026-06-01 to=2026-06-30 → "Tháng 6/2026"
+  if (from && to) {
+    const d1 = new Date(from);
+    const d2 = new Date(to);
+    if (d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth()) {
+      return `Tháng ${d1.getMonth() + 1}/${d1.getFullYear()}`;
+    }
+    return `${fmt(from)} – ${fmt(to)}`;
+  }
+  if (from) return `Từ ${fmt(from)}`;
+  if (to) return `Đến ${fmt(to)}`;
+  return 'Toàn thời gian';
+}
 
 function RankList({ entries, emptyMsg }: { entries: ParticipationEntry[]; emptyMsg: string }) {
   if (entries.length === 0) {
@@ -43,19 +71,30 @@ function RankList({ entries, emptyMsg }: { entries: ParticipationEntry[]; emptyM
 
 export function PublicReportPage() {
   const { token } = useParams<{ token: string }>();
+  const [searchParams] = useSearchParams();
+  const from = searchParams.get('from') ?? undefined;
+  const to = searchParams.get('to') ?? undefined;
+
   const [data, setData] = useState<PublicReportResponse | null>(null);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     if (!token) { setNotFound(true); return; }
+
+    // Build URL with optional range params
+    const qs = new URLSearchParams();
+    if (from) qs.set('from', from);
+    if (to) qs.set('to', to);
+    const qStr = qs.toString();
+
     api
-      .get<PublicReportResponse>(`/public/report/${token}`)
+      .get<PublicReportResponse>(`/public/report/${token}${qStr ? `?${qStr}` : ''}`)
       .then(setData)
       .catch((e) => {
         if (e instanceof ApiClientError && e.status === 404) setNotFound(true);
         else setNotFound(true);
       });
-  }, [token]);
+  }, [token, from, to]);
 
   // Loading
   if (!notFound && !data) {
@@ -84,6 +123,7 @@ export function PublicReportPage() {
   }
 
   const { club, members, guests } = data!;
+  const rangeLabel = formatRangeLabel(from, to);
 
   return (
     <div className="min-h-dvh bg-canvas">
@@ -100,7 +140,7 @@ export function PublicReportPage() {
         {/* Header */}
         <div className="space-y-1">
           <h1 className="page-title">Thống kê tham gia</h1>
-          <p className="text-sm text-muted">{club.name} · Tất cả thời gian</p>
+          <p className="text-sm text-muted">{club.name} · {rangeLabel}</p>
         </div>
 
         {/* CLB members section */}
