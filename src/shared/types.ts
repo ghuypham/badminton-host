@@ -66,6 +66,7 @@ export interface SessionParticipant {
   paid_amount: number;
   payment_note: string | null;
   bill_token: string | null;
+  paid_by: number | null; // FK → session_participants.id; null = pays own bill
   created_at: string;
   updated_at: string;
   deleted_at: string | null;

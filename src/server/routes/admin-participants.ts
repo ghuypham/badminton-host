@@ -14,6 +14,9 @@ import {
   approveParticipant,
   rejectParticipant,
   deleteParticipant,
+  approveGroupByPayer,
+  rejectGroupByPayer,
+  deleteGroupByPayer,
   getParticipant,
 } from '../services/participant-service.ts';
 import { updatePayment } from '../services/payment-service.ts';
@@ -55,30 +58,47 @@ adminParticipantsRouter.put(
 );
 
 // DELETE /api/admin/participants/:id (soft)
+// If ?group=1 and participant is a payer, also deletes all followers (paid_by = id).
 adminParticipantsRouter.delete(
   '/:id',
   asyncHandler(async (req, res) => {
     const id = parseInt(req.params.id, 10);
-    deleteParticipant(id);
+    if (req.query.group === '1') {
+      deleteGroupByPayer(id);
+    } else {
+      deleteParticipant(id);
+    }
     res.json({ ok: true });
   }),
 );
 
 // POST /api/admin/participants/:id/approve
+// If ?group=1 and participant is a payer, atomically approves all pending followers too.
 adminParticipantsRouter.post(
   '/:id/approve',
   asyncHandler(async (req, res) => {
     const id = parseInt(req.params.id, 10);
-    res.json(approveParticipant(id));
+    if (req.query.group === '1') {
+      approveGroupByPayer(id);
+      res.json({ ok: true });
+    } else {
+      res.json(approveParticipant(id));
+    }
   }),
 );
 
 // POST /api/admin/participants/:id/reject
+// If ?group=1 and participant is a payer, also rejects all pending followers (paid_by = id).
 adminParticipantsRouter.post(
   '/:id/reject',
   asyncHandler(async (req, res) => {
     const id = parseInt(req.params.id, 10);
-    res.json(rejectParticipant(id));
+    if (req.query.group === '1') {
+      rejectGroupByPayer(id);
+      res.json({ ok: true });
+    } else {
+      res.json(rejectParticipant(id));
+    }
   }),
 );
 

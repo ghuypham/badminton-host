@@ -74,6 +74,8 @@ const sessionParticipantSchema = z.object({
   paid_amount: z.number().int(),
   payment_note: z.string().nullable(),
   bill_token: z.string().nullable(),
+  // paid_by: optional for backward-compat with pre-v7 backups; null = solo payer
+  paid_by: z.number().int().nullable().optional(),
   created_at: z.string(),
   updated_at: z.string(),
   deleted_at: z.string().nullable(),

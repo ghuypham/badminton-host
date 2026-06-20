@@ -7,6 +7,14 @@ import { formatVnd, formatDate } from '../lib/format.ts';
 import { Icon } from '../components/icon.tsx';
 import type { PaymentStatus } from '../../shared/types.ts';
 
+interface GroupBillLine {
+  participant_id: number;
+  name: string;
+  final_amount: number;
+  paid_amount: number;
+  payment_status: string; // 'waived' lines are excluded from money totals; rendered as "Miễn"
+}
+
 interface BillView {
   participant: {
     id: number;
@@ -18,6 +26,11 @@ interface BillView {
     bill_token: string | null;
     payment_note: string | null;
   };
+  // Group billing fields (present when payer has followers)
+  group_lines?: GroupBillLine[];
+  group_total?: number;
+  group_paid?: number;
+  group_remaining?: number;
   remaining: number;
   session: {
     id: number;
@@ -86,9 +99,10 @@ export function PublicBillPage() {
     );
   }
 
-  const { participant, remaining, session, bank, renderedNote } = bill!;
+  const { participant, remaining, session, bank, renderedNote, group_lines, group_total, group_paid, group_remaining } = bill!;
   const statusCfg = STATUS_CONFIG[participant.payment_status] ?? { label: participant.payment_status, badgeCls: 'badge' };
   const isPaid = participant.payment_status === 'paid' || participant.payment_status === 'waived';
+  const isGroupBill = group_lines !== undefined && group_lines.length > 1;
 
   return (
     <div className="min-h-dvh bg-canvas">
@@ -118,32 +132,72 @@ export function PublicBillPage() {
             <span className="text-xs font-medium uppercase tracking-wide">Chi tiết thanh toán</span>
           </div>
 
-          <div className="flex items-baseline justify-between">
-            <span className="text-sm text-muted">Số tiền phải trả</span>
-            <span className="font-display text-2xl tnum">{formatVnd(participant.final_amount)}</span>
-          </div>
+          {/* Group bill: show per-member breakdown */}
+          {isGroupBill ? (
+            <>
+              <div className="space-y-1.5">
+                {group_lines!.map((line, idx) => (
+                  <div key={line.participant_id} className="flex justify-between text-sm">
+                    <span className={idx === 0 ? 'font-medium' : 'text-muted'}>{line.name}</span>
+                    {/* Waived: paid_amount=final in DB but NOT real money — show label only */}
+                    {line.payment_status === 'waived'
+                      ? <span className="text-muted italic">Miễn</span>
+                      : <span className="tnum">{formatVnd(line.final_amount)}</span>
+                    }
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-baseline justify-between border-t border-hairline pt-2">
+                <span className="text-sm font-semibold">Tổng cộng</span>
+                <span className="font-display text-2xl tnum">{formatVnd(group_total!)}</span>
+              </div>
+              {(group_paid ?? 0) > 0 && participant.payment_status !== 'waived' && (
+                <div className="flex justify-between text-sm border-t border-hairline pt-2">
+                  <span className="text-muted flex items-center gap-1.5">
+                    <Icon name="check" size={14} className="text-success" /> Đã thanh toán
+                  </span>
+                  <span className="tnum">{formatVnd(group_paid!)}</span>
+                </div>
+              )}
+              {!isPaid && (group_remaining ?? 0) > 0 && (
+                <div className="flex justify-between text-sm font-semibold border-t border-hairline pt-2">
+                  <span className="flex items-center gap-1.5">
+                    <Icon name="wallet" size={14} className="text-danger" /> Còn lại
+                  </span>
+                  <span className="tnum text-danger">{formatVnd(group_remaining!)}</span>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="flex items-baseline justify-between">
+                <span className="text-sm text-muted">Số tiền phải trả</span>
+                <span className="font-display text-2xl tnum">{formatVnd(participant.final_amount)}</span>
+              </div>
 
-          {/* Waived: paid_amount=final ở DB nhưng KHÔNG phải tiền thật → không hiển thị "đã thanh toán" */}
-          {participant.paid_amount > 0 && participant.payment_status !== 'waived' && (
-            <div className="flex justify-between text-sm border-t border-hairline pt-2">
-              <span className="text-muted flex items-center gap-1.5">
-                <Icon name="check" size={14} className="text-success" /> Đã thanh toán
-              </span>
-              <span className="tnum">{formatVnd(participant.paid_amount)}</span>
-            </div>
-          )}
+              {/* Waived: paid_amount=final ở DB nhưng KHÔNG phải tiền thật → không hiển thị "đã thanh toán" */}
+              {participant.paid_amount > 0 && participant.payment_status !== 'waived' && (
+                <div className="flex justify-between text-sm border-t border-hairline pt-2">
+                  <span className="text-muted flex items-center gap-1.5">
+                    <Icon name="check" size={14} className="text-success" /> Đã thanh toán
+                  </span>
+                  <span className="tnum">{formatVnd(participant.paid_amount)}</span>
+                </div>
+              )}
 
-          {participant.payment_status === 'waived' && (
-            <p className="text-sm text-muted border-t border-hairline pt-2">Khoản này đã được miễn.</p>
-          )}
+              {participant.payment_status === 'waived' && (
+                <p className="text-sm text-muted border-t border-hairline pt-2">Khoản này đã được miễn.</p>
+              )}
 
-          {!isPaid && remaining > 0 && (
-            <div className="flex justify-between text-sm font-semibold border-t border-hairline pt-2">
-              <span className="flex items-center gap-1.5">
-                <Icon name="wallet" size={14} className="text-danger" /> Còn lại
-              </span>
-              <span className="tnum text-danger">{formatVnd(remaining)}</span>
-            </div>
+              {!isPaid && remaining > 0 && (
+                <div className="flex justify-between text-sm font-semibold border-t border-hairline pt-2">
+                  <span className="flex items-center gap-1.5">
+                    <Icon name="wallet" size={14} className="text-danger" /> Còn lại
+                  </span>
+                  <span className="tnum text-danger">{formatVnd(remaining)}</span>
+                </div>
+              )}
+            </>
           )}
         </div>
 

@@ -46,14 +46,20 @@ export function ParticipantsSection({ sessionId, participants, onChange, settled
   const pending = participants.filter((p) => p.status === 'pending');
   const active = participants.filter((p) => p.status !== 'pending');
 
-  const approve = async (id: number) => {
-    try { await api.post(`/admin/participants/${id}/approve`); onChange(); }
-    catch (e) { setErr(e instanceof ApiClientError ? e.message : 'Lỗi'); }
+  // Approve payer; if payer has followers use ?group=1 for atomic server-side approval.
+  const approve = async (id: number, hasFollowers: boolean = false) => {
+    try {
+      await api.post(`/admin/participants/${id}/approve${hasFollowers ? '?group=1' : ''}`);
+      onChange();
+    } catch (e) { setErr(e instanceof ApiClientError ? e.message : 'Lỗi'); }
   };
 
-  const reject = async (id: number) => {
-    try { await api.post(`/admin/participants/${id}/reject`); onChange(); }
-    catch (e) { setErr(e instanceof ApiClientError ? e.message : 'Lỗi'); }
+  // Reject payer; server uses ?group=1 to also reject pending followers atomically
+  const reject = async (id: number, hasFollowers: boolean = false) => {
+    try {
+      await api.post(`/admin/participants/${id}/reject${hasFollowers ? '?group=1' : ''}`);
+      onChange();
+    } catch (e) { setErr(e instanceof ApiClientError ? e.message : 'Lỗi'); }
   };
 
   const setStatus = async (id: number, status: ParticipantStatus) => {
@@ -115,84 +121,147 @@ export function ParticipantsSection({ sessionId, participants, onChange, settled
         />
       )}
 
-      {/* Pending approval queue */}
-      {pending.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs font-semibold text-muted uppercase tracking-wide">
-            Chờ duyệt ({pending.length})
-          </p>
-          {pending.map((p) => (
-            <div key={p.id} className="card flex items-center gap-3">
-              <span className="avatar">{initials(p.name)}</span>
+      {/* Pending approval queue — group payers with their followers */}
+      {pending.length > 0 && (() => {
+        const pendingPayers = pending.filter((p) => p.paid_by === null);
+        const pendingFollowersByPayer = new Map<number, SessionParticipant[]>();
+        for (const p of pending) {
+          if (p.paid_by !== null) {
+            const list = pendingFollowersByPayer.get(p.paid_by) ?? [];
+            list.push(p);
+            pendingFollowersByPayer.set(p.paid_by, list);
+          }
+        }
+        const pendingOrphans = pending.filter(
+          (p) => p.paid_by !== null && !pendingFollowersByPayer.has(p.paid_by ?? -1),
+        );
+
+        const renderPendingCard = (
+          p: SessionParticipant,
+          isFollower: boolean,
+          hasFollowers: boolean,
+        ) => (
+          <div key={p.id} className={`card flex items-center gap-3 ${isFollower ? 'ml-6 border-l-2 border-primary/30' : ''}`}>
+            <span className="avatar">{initials(p.name)}</span>
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold text-sm truncate">{p.name}</div>
+              {p.phone && <div className="text-xs text-muted">{p.phone}</div>}
+              {p.note && <div className="text-xs text-muted italic">{p.note}</div>}
+              {isFollower && <div className="text-xs text-muted italic">đi cùng nhóm</div>}
+            </div>
+            {/* Only payer gets approve/reject buttons; ?group=1 handles followers atomically */}
+            {!isFollower && (
+              <div className="flex gap-1.5 shrink-0">
+                <button className="btn-primary btn-sm" onClick={() => approve(p.id, hasFollowers)}>
+                  <Icon name="check" size={14} /> Duyệt{hasFollowers ? ' nhóm' : ''}
+                </button>
+                <button className="btn-danger btn-sm" onClick={() => reject(p.id, hasFollowers)}>
+                  <Icon name="x" size={14} /> Từ chối{hasFollowers ? ' nhóm' : ''}
+                </button>
+              </div>
+            )}
+          </div>
+        );
+
+        return (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-muted uppercase tracking-wide">
+              Chờ duyệt ({pending.length})
+            </p>
+            {pendingPayers.map((p) => {
+              const followers = pendingFollowersByPayer.get(p.id) ?? [];
+              return (
+                <div key={p.id} className="space-y-1">
+                  {renderPendingCard(p, false, followers.length > 0)}
+                  {followers.map((f) => renderPendingCard(f, true, false))}
+                </div>
+              );
+            })}
+            {pendingOrphans.map((p) => renderPendingCard(p, false, false))}
+          </div>
+        );
+      })()}
+
+      {/* Active participants list — payers first, followers indented under their payer */}
+      {active.length > 0 && (() => {
+        // Separate payers (paid_by === null) and followers (paid_by !== null)
+        const payers = active.filter((p) => p.paid_by === null);
+        const followersByPayer = new Map<number, SessionParticipant[]>();
+        for (const p of active) {
+          if (p.paid_by !== null) {
+            const list = followersByPayer.get(p.paid_by) ?? [];
+            list.push(p);
+            followersByPayer.set(p.paid_by, list);
+          }
+        }
+        // Participants with no payer in active list (edge: payer not yet approved / deleted)
+        const orphans = active.filter(
+          (p) => p.paid_by !== null && !followersByPayer.has(p.paid_by ?? -1),
+        );
+
+        const renderParticipantCard = (p: SessionParticipant, isFollower = false) => (
+          <div key={p.id} className={`card space-y-3 ${isFollower ? 'ml-6 border-l-2 border-primary/30' : ''}`}>
+            {/* Name row */}
+            <div className="flex items-center gap-3">
+              <span className={`avatar ${isFollower ? 'h-7 w-7 text-xs' : ''}`}>{initials(p.name)}</span>
               <div className="flex-1 min-w-0">
                 <div className="font-semibold text-sm truncate">{p.name}</div>
                 {p.phone && <div className="text-xs text-muted">{p.phone}</div>}
-                {p.note && <div className="text-xs text-muted italic">{p.note}</div>}
-              </div>
-              <div className="flex gap-1.5 shrink-0">
-                <button className="btn-primary btn-sm" onClick={() => approve(p.id)}>
-                  <Icon name="check" size={14} /> Duyệt
-                </button>
-                <button className="btn-danger btn-sm" onClick={() => reject(p.id)}>
-                  <Icon name="x" size={14} /> Từ chối
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Active participants list */}
-      {active.length > 0 && (
-        <div className="space-y-2">
-          {active.map((p) => (
-            <div key={p.id} className="card space-y-3">
-              {/* Name row */}
-              <div className="flex items-center gap-3">
-                <span className="avatar">{initials(p.name)}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-sm truncate">{p.name}</div>
-                  {p.phone && <div className="text-xs text-muted">{p.phone}</div>}
-                </div>
-                <span className={STATUS_BADGE[p.status] ?? 'badge'}>
-                  {STATUS_LABEL[p.status]}
-                </span>
-                {!settled && (
-                  <button
-                    className="icon-btn-danger"
-                    aria-label="Xóa"
-                    onClick={() => remove(p.id)}
-                  >
-                    <Icon name="trash" size={16} />
-                  </button>
+                {isFollower && (
+                  <div className="text-xs text-muted italic">đi cùng nhóm</div>
                 )}
               </div>
-
-              {/* Attendance + charge chips */}
+              <span className={STATUS_BADGE[p.status] ?? 'badge'}>
+                {STATUS_LABEL[p.status]}
+              </span>
               {!settled && (
-                <div className="flex flex-wrap gap-1.5">
-                  {(['attended', 'absent', 'cancelled'] as ParticipantStatus[]).map((s) => (
-                    <button
-                      key={s}
-                      className={`chip ${p.status === s ? 'chip-active' : ''}`}
-                      onClick={() => setStatus(p.id, s)}
-                    >
-                      {STATUS_LABEL[s]}
-                    </button>
-                  ))}
-                  {/* Charge toggle chip */}
-                  <button
-                    className={`chip ${p.should_charge === 1 ? 'chip-active' : ''}`}
-                    onClick={() => toggleCharge(p)}
-                  >
-                    {p.should_charge === 1 ? 'Tính tiền' : 'Không tính'}
-                  </button>
-                </div>
+                <button
+                  className="icon-btn-danger"
+                  aria-label="Xóa"
+                  onClick={() => remove(p.id)}
+                >
+                  <Icon name="trash" size={16} />
+                </button>
               )}
             </div>
-          ))}
-        </div>
-      )}
+
+            {/* Attendance + charge chips */}
+            {!settled && (
+              <div className="flex flex-wrap gap-1.5">
+                {(['attended', 'absent', 'cancelled'] as ParticipantStatus[]).map((s) => (
+                  <button
+                    key={s}
+                    className={`chip ${p.status === s ? 'chip-active' : ''}`}
+                    onClick={() => setStatus(p.id, s)}
+                  >
+                    {STATUS_LABEL[s]}
+                  </button>
+                ))}
+                {/* Charge toggle chip */}
+                <button
+                  className={`chip ${p.should_charge === 1 ? 'chip-active' : ''}`}
+                  onClick={() => toggleCharge(p)}
+                >
+                  {p.should_charge === 1 ? 'Tính tiền' : 'Không tính'}
+                </button>
+              </div>
+            )}
+          </div>
+        );
+
+        return (
+          <div className="space-y-2">
+            {payers.map((p) => (
+              <div key={p.id} className="space-y-1">
+                {renderParticipantCard(p, false)}
+                {(followersByPayer.get(p.id) ?? []).map((f) => renderParticipantCard(f, true))}
+              </div>
+            ))}
+            {/* Orphans: followers whose payer is not in the active list */}
+            {orphans.map((p) => renderParticipantCard(p, false))}
+          </div>
+        );
+      })()}
 
       {/* Empty state */}
       {participants.length === 0 && (

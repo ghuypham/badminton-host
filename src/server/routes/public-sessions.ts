@@ -5,7 +5,7 @@ import rateLimit from 'express-rate-limit';
 import { asyncHandler, badRequest, notFound } from '../utils/http-error.ts';
 import { publicRegisterSchema } from '../schemas/participant-schema.ts';
 import { getSessionByToken } from '../services/session-service.ts';
-import { addGuestParticipant } from '../services/participant-service.ts';
+import { addGuestParticipant, addProxyGroup } from '../services/participant-service.ts';
 import { getDb } from '../db/connection.ts';
 import { sanitizeText, sanitizeOptional } from '../utils/sanitize.ts';
 
@@ -76,7 +76,9 @@ publicSessionsRouter.post(
 
     const input = publicRegisterSchema.parse(rawBody);
 
-    // Max pending cap: 50
+    const companions = input.companions ?? [];
+
+    // Max pending cap: 50 (count registrant + companions together)
     const db = getDb();
     const pendingCount = (
       db
@@ -87,26 +89,51 @@ publicSessionsRouter.post(
         .get(session.id) as { cnt: number }
     ).cnt;
 
-    if (pendingCount >= 50) {
+    // 1 primary + N companions
+    const totalAdding = 1 + companions.length;
+    if (pendingCount + totalAdding > 50) {
       return res.status(429).json({
         error: 'too_many_pending',
         message: 'Quá nhiều người đang chờ duyệt, thử lại sau',
       });
     }
 
-    const participant = await addGuestParticipant(session.id, {
-      name: sanitizeText(input.name),
-      phone: sanitizeOptional(input.phone) ?? undefined,
-      skill_level: input.skill_level ?? undefined,
-      note: sanitizeOptional(input.note) ?? undefined,
-      status: 'pending',
-    });
+    if (companions.length === 0) {
+      // Simple single registration (no proxy group)
+      const participant = await addGuestParticipant(session.id, {
+        name: sanitizeText(input.name),
+        phone: sanitizeOptional(input.phone) ?? undefined,
+        skill_level: input.skill_level ?? undefined,
+        note: sanitizeOptional(input.note) ?? undefined,
+        status: 'pending',
+      });
+      return res.status(201).json({
+        ok: true,
+        id: participant.id,
+        name: participant.name,
+        status: participant.status,
+      });
+    }
+
+    // Proxy group registration: A + companions in a single transaction
+    const { primary } = addProxyGroup(
+      session.id,
+      {
+        name: sanitizeText(input.name),
+        phone: sanitizeOptional(input.phone) ?? undefined,
+        skill_level: input.skill_level ?? undefined,
+        note: sanitizeOptional(input.note) ?? undefined,
+        status: 'pending',
+      },
+      companions,
+    );
 
     return res.status(201).json({
       ok: true,
-      id: participant.id,
-      name: participant.name,
-      status: participant.status,
+      id: primary.id,
+      name: primary.name,
+      status: primary.status,
+      companions_count: companions.length,
     });
   }),
 );

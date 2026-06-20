@@ -95,16 +95,28 @@ export async function importData(db: Database.Database, rawJson: unknown): Promi
     for (const c of data.sessionCourts) insertCourt.run(c);
 
     // Insert session_participants
+    // paid_by is optional (absent in pre-v7 backups) — default to NULL when missing.
+    // Two-pass insert: first pass inserts payers (paid_by IS NULL), second pass inserts
+    // followers (paid_by NOT NULL) so the FK reference is satisfied.
     const insertParticipant = db.prepare(
       `INSERT INTO session_participants
          (id, session_id, member_id, name, phone, skill_level, status, should_charge, note,
           calculated_amount, final_amount, previous_final_amount, payment_status, paid_amount,
-          payment_note, bill_token, created_at, updated_at, deleted_at)
+          payment_note, bill_token, paid_by, created_at, updated_at, deleted_at)
        VALUES (@id, @session_id, @member_id, @name, @phone, @skill_level, @status, @should_charge, @note,
                @calculated_amount, @final_amount, @previous_final_amount, @payment_status, @paid_amount,
-               @payment_note, @bill_token, @created_at, @updated_at, @deleted_at)`,
+               @payment_note, @bill_token, @paid_by, @created_at, @updated_at, @deleted_at)`,
     );
-    for (const p of data.sessionParticipants) insertParticipant.run(p);
+    // Pass 1: payers / solo participants (paid_by null or absent)
+    for (const p of data.sessionParticipants) {
+      const paidBy = (p as { paid_by?: number | null }).paid_by ?? null;
+      if (paidBy === null) insertParticipant.run({ ...p, paid_by: null });
+    }
+    // Pass 2: followers (paid_by set) — FK target already inserted
+    for (const p of data.sessionParticipants) {
+      const paidBy = (p as { paid_by?: number | null }).paid_by ?? null;
+      if (paidBy !== null) insertParticipant.run({ ...p, paid_by: paidBy });
+    }
 
     // Insert cost_items
     const insertCostItem = db.prepare(

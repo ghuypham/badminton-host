@@ -1,15 +1,24 @@
 // Public join page (/join/:token) — registration form with honeypot.
+// Supports proxy registration: registrant A can add companions (max 5); A pays for all.
 import { useEffect, useState, type FormEvent } from 'react';
 import { useParams } from 'react-router-dom';
 import { api, ApiClientError } from '../api/client.ts';
 import { Icon } from '../components/icon.tsx';
 import { SKILL_LEVELS } from '../lib/skill-levels.ts';
 
+const MAX_COMPANIONS = 5;
+
 interface RegisterResult {
   ok: boolean;
   id: number;
   name: string;
   status: string;
+  companions_count?: number;
+}
+
+interface Companion {
+  name: string;
+  skill_level: number;
 }
 
 type PageState = 'form' | 'success' | 'closed' | 'not_found' | 'rate_limited' | 'error';
@@ -63,15 +72,32 @@ export function PublicJoinPage() {
   const [registrationEnabled, setRegistrationEnabled] = useState<boolean | null>(null);
   const [result, setResult] = useState<RegisterResult | null>(null);
 
-  // Form fields
+  // Form fields — primary registrant (A)
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [skill, setSkill] = useState(0);
   const [note, setNote] = useState('');
+  // Companions (đi cùng): A pays for all
+  const [companions, setCompanions] = useState<Companion[]>([]);
   // Honeypot: must stay empty
   const [website, setWebsite] = useState('');
   const [busy, setBusy] = useState(false);
   const [errMsg, setErrMsg] = useState('');
+
+  const addCompanion = () => {
+    if (companions.length >= MAX_COMPANIONS) return;
+    setCompanions((prev) => [...prev, { name: '', skill_level: 0 }]);
+  };
+
+  const removeCompanion = (idx: number) => {
+    setCompanions((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const updateCompanion = (idx: number, field: keyof Companion, value: string | number) => {
+    setCompanions((prev) =>
+      prev.map((c, i) => (i === idx ? { ...c, [field]: value } : c)),
+    );
+  };
 
   useEffect(() => {
     if (!token) { setPageState('not_found'); return; }
@@ -94,11 +120,22 @@ export function PublicJoinPage() {
     setBusy(true);
     setErrMsg('');
     try {
+      // Validate companions: all must have a name
+      for (const c of companions) {
+        if (!c.name.trim()) {
+          setErrMsg('Vui lòng nhập tên cho tất cả người đi cùng');
+          setBusy(false);
+          return;
+        }
+      }
       const r = await api.post<RegisterResult>(`/public/sessions/${token}/register`, {
         name,
         phone: phone || null,
         skill_level: skill,
         note: note || null,
+        companions: companions.length > 0
+          ? companions.map((c) => ({ name: c.name.trim(), skill_level: c.skill_level }))
+          : undefined,
         website, // honeypot
       });
       setResult(r);
@@ -165,7 +202,14 @@ export function PublicJoinPage() {
         iconName="check"
         iconClass="bg-success-soft text-success"
         title="Đã đăng ký!"
-        body={<>Xin chào <strong>{result?.name}</strong>, đăng ký của bạn đang chờ duyệt.</>}
+        body={
+          <>
+            Xin chào <strong>{result?.name}</strong>, đăng ký của bạn đang chờ duyệt.
+            {result?.companions_count && result.companions_count > 0
+              ? ` (kèm ${result.companions_count} người đi cùng)`
+              : null}
+          </>
+        }
       />
     </PageShell>
   );
@@ -246,10 +290,67 @@ export function PublicJoinPage() {
             />
           </div>
 
+          {/* Companions repeater — registrant A pays for all */}
+          {companions.length > 0 && (
+            <div className="space-y-3">
+              <p className="text-xs font-semibold text-muted uppercase tracking-wide">
+                Người đi cùng ({companions.length}/{MAX_COMPANIONS})
+              </p>
+              {companions.map((c, idx) => (
+                <div key={idx} className="rounded-lg border border-hairline p-3 space-y-2 bg-surface-sunken">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-muted">Người {idx + 1}</span>
+                    <button
+                      type="button"
+                      className="icon-btn"
+                      aria-label="Xóa người đi cùng"
+                      onClick={() => removeCompanion(idx)}
+                    >
+                      <Icon name="x" size={14} />
+                    </button>
+                  </div>
+                  <div>
+                    <label className="label">Tên *</label>
+                    <input
+                      className="input"
+                      value={c.name}
+                      onChange={(e) => updateCompanion(idx, 'name', e.target.value)}
+                      required
+                      maxLength={100}
+                      placeholder="Nguyễn Văn B"
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Trình độ</label>
+                    <select
+                      className="input"
+                      value={c.skill_level}
+                      onChange={(e) => updateCompanion(idx, 'skill_level', parseInt(e.target.value, 10))}
+                    >
+                      {SKILL_LEVELS.map((label, i) => (
+                        <option key={i} value={i}>{label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {companions.length < MAX_COMPANIONS && (
+            <button
+              type="button"
+              className="btn-secondary w-full"
+              onClick={addCompanion}
+            >
+              <Icon name="plus" size={16} /> Thêm người đi cùng
+            </button>
+          )}
+
           {errMsg && <p className="text-sm text-danger">{errMsg}</p>}
 
           <button type="submit" className="btn-primary w-full" disabled={busy}>
-            {busy ? 'Đang đăng ký…' : 'Đăng ký'}
+            {busy ? 'Đang đăng ký…' : companions.length > 0 ? `Đăng ký (${1 + companions.length} người)` : 'Đăng ký'}
           </button>
         </form>
       </div>
