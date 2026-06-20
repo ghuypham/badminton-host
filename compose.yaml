@@ -1,0 +1,25 @@
+services:
+  app:
+    build: .
+    image: badminton-host
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      TZ: Asia/Ho_Chi_Minh
+      DATABASE_PATH: /data/badminton.sqlite
+      BACKUPS_DIR: /data/backups
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD required}
+      SESSION_SECRET: ${SESSION_SECRET:?SESSION_SECRET required}
+      COOKIE_SECURE: ${COOKIE_SECURE:-0}
+      TRUST_PROXY: ${TRUST_PROXY:-0}
+      APP_BASE_URL: ${APP_BASE_URL:-}
+      MAX_BACKUPS: ${MAX_BACKUPS:-10}
+    volumes:
+      - badminton_data:/data
+    stop_grace_period: 15s
+
+volumes:
+  badminton_data:
