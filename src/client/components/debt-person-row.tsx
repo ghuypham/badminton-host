@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { api, ApiClientError } from '../api/client.ts';
 import { formatVnd, formatDate } from '../lib/format.ts';
 import { Icon } from './icon.tsx';
+import { ShareBillButton } from './share-bill-button.tsx';
 
 export interface DebtItem {
   participant_id: number;
@@ -118,6 +119,9 @@ export function DebtPersonRow({ entry, onRefresh }: Props) {
                     <div className="text-xs text-muted tnum">/ {formatVnd(item.final_amount)}</div>
                   </div>
                 </div>
+
+                {/* Share bill link */}
+                <ShareBillButton participantId={item.participant_id} />
 
                 {/* Action row */}
                 <div className="flex flex-wrap items-center gap-2">
