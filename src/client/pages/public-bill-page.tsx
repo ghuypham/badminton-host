@@ -100,11 +100,15 @@ export function PublicBillPage() {
           <span className="text-sm text-muted">Số tiền phải trả</span>
           <span className="font-display text-xl">{formatVnd(participant.final_amount)}</span>
         </div>
-        {participant.paid_amount > 0 && (
+        {/* Waived: paid_amount=final ở DB nhưng KHÔNG phải tiền thật → không hiển thị "đã thanh toán" */}
+        {participant.paid_amount > 0 && participant.payment_status !== 'waived' && (
           <div className="flex justify-between text-sm">
             <span className="text-muted">Đã thanh toán</span>
             <span>{formatVnd(participant.paid_amount)}</span>
           </div>
+        )}
+        {participant.payment_status === 'waived' && (
+          <div className="text-sm text-muted border-t border-hairline pt-2">Khoản này đã được miễn.</div>
         )}
         {!isPaid && remaining > 0 && (
           <div className="flex justify-between text-sm font-medium border-t border-hairline pt-2">
@@ -114,6 +118,8 @@ export function PublicBillPage() {
         )}
       </div>
 
+      {/* Hướng dẫn thanh toán — ẩn khi đã trả/được miễn (không còn gì để trả) */}
+      {!isPaid && (<>
       {/* QR code */}
       {bank.bank_qr_image_base64 && bank.bank_qr_mime && (
         <div className="card flex flex-col items-center gap-3">
@@ -157,6 +163,7 @@ export function PublicBillPage() {
           )}
         </div>
       )}
+      </>)}
 
       {/* Payment note from admin */}
       {participant.payment_note && (

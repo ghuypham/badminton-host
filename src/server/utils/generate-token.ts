@@ -1,7 +1,6 @@
 // Token generator: crypto.randomBytes(16) → base64url (128-bit).
 // Retry wrapper chỉ bắt SQLITE_CONSTRAINT_UNIQUE, tối đa 5 lần rồi throw.
 import { randomBytes } from 'node:crypto';
-import type Database from 'better-sqlite3';
 
 export function generateToken(): string {
   return randomBytes(16).toString('base64url');
@@ -26,16 +25,4 @@ export function generateUniqueToken(
   }
   // Không bao giờ đến đây nhưng TypeScript yêu cầu.
   throw new Error('generateUniqueToken: exhausted attempts');
-}
-
-// Tiện ích: lấy token từ bảng theo cột dựa vào stmt insert trả lastInsertRowid.
-export function insertWithUniqueToken(
-  db: Database.Database,
-  tableName: string,
-  tokenColumn: string,
-  insertFn: (token: string) => void,
-): string {
-  return generateUniqueToken((token) => {
-    insertFn(token);
-  });
 }

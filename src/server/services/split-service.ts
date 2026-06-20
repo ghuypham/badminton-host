@@ -114,7 +114,9 @@ export function finalizeSplit(sessionId: number, entries: FinalizeEntry[]): void
 
       const isRefinalize =
         session.status === 'settled' &&
-        (current.payment_status === 'paid' || current.payment_status === 'partial');
+        (current.payment_status === 'paid' ||
+          current.payment_status === 'partial' ||
+          current.payment_status === 'waived');
 
       let paymentStatus = 'unpaid';
       let previousFinalAmount: number | null = null;

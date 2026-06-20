@@ -25,6 +25,10 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   const data = text ? JSON.parse(text) : undefined;
 
   if (!res.ok) {
+    // Session admin hết hạn → 401 trên route admin: đẩy về /login thay vì kẹt ở trang trống.
+    if (res.status === 401 && path.startsWith('/admin') && window.location.pathname !== '/login') {
+      window.location.href = '/login';
+    }
     const err = (data ?? {}) as ApiError;
     throw new ApiClientError(res.status, err.error ?? 'error', err.message ?? 'Lỗi không xác định');
   }

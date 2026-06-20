@@ -35,18 +35,27 @@ export function ShareBillButton(props: Props) {
         setLabel('Chưa có link');
         return;
       }
+      // Thử Web Share trước; nếu trình duyệt không hỗ trợ HOẶC share fail
+      // (desktop) → fallback copy link. Bỏ qua khi user tự hủy (AbortError).
+      let shared = false;
       if (navigator.share) {
-        await navigator.share({ url });
-      } else {
+        try {
+          await navigator.share({ url });
+          shared = true;
+        } catch (shareErr) {
+          if (shareErr instanceof DOMException && shareErr.name === 'AbortError') {
+            shared = true; // user cancel — không cần fallback
+          }
+        }
+      }
+      if (!shared) {
         await navigator.clipboard.writeText(url);
         setLabel('Đã copy!');
         setTimeout(() => setLabel('Chia sẻ hóa đơn'), 2000);
       }
     } catch (e) {
-      if (e instanceof ApiClientError) {
-        setLabel('Lỗi lấy link');
-      }
-      // Ignore share abort (user cancelled)
+      setLabel(e instanceof ApiClientError ? 'Lỗi lấy link' : 'Lỗi chia sẻ');
+      setTimeout(() => setLabel('Chia sẻ hóa đơn'), 2000);
     } finally {
       setBusy(false);
     }

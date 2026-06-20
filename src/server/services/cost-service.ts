@@ -83,5 +83,6 @@ export function computeSessionTotal(session: Session): number {
       'SELECT COALESCE(SUM(amount), 0) AS total FROM cost_items WHERE session_id = ? AND deleted_at IS NULL',
     )
     .get(session.id) as { total: number };
-  return courtsRow.total + itemsRow.total;
+  // Clamp ≥0: discount lớn hơn chi phí không được làm tổng âm → tránh chia tiền âm.
+  return Math.max(0, courtsRow.total + itemsRow.total);
 }

@@ -49,7 +49,7 @@ export function getBillByToken(token: string): BillView {
   if (!participant) throw notFound('Không tìm thấy hóa đơn');
 
   const session = db
-    .prepare('SELECT id, title, session_date, location, status FROM sessions WHERE id = ?')
+    .prepare('SELECT id, title, session_date, location, status FROM sessions WHERE id = ? AND deleted_at IS NULL')
     .get(participant.session_id) as
     | Pick<Session, 'id' | 'title' | 'session_date' | 'location' | 'status'>
     | undefined;

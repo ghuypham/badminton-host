@@ -1,7 +1,8 @@
 // BackupSection: export (blob download) + import (file picker + confirm).
 // Used inside settings-page.tsx.
 import { useRef, useState } from 'react';
-import { ApiClientError } from '../api/client.ts';
+
+const MAX_IMPORT_BYTES = 25 * 1024 * 1024;
 
 export function BackupSection() {
   const fileRef = useRef<HTMLInputElement>(null);
@@ -36,25 +37,30 @@ export function BackupSection() {
 
   const onConfirmImport = async () => {
     if (!pendingFile) return;
+    if (pendingFile.size > MAX_IMPORT_BYTES) {
+      setMsg('File quá lớn (tối đa 25MB).');
+      setPendingFile(null);
+      return;
+    }
     setImporting(true);
     setMsg('');
     try {
+      // Dùng raw fetch (không phải api client) vì cần gửi body JSON thô + đọc lỗi rollback.
       const text = await pendingFile.text();
-      const body = JSON.parse(text) as unknown;
       const res = await fetch('/api/admin/backup/import', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: text,
       });
-      const data = (await res.json()) as { ok?: boolean; error?: string; message?: string };
-      if (!res.ok) {
-        setMsg(data.message ?? 'Import thất bại');
-      } else {
-        setMsg('Import thành công! Hãy tải lại trang để xem dữ liệu mới.');
-      }
-    } catch (e) {
-      setMsg(e instanceof ApiClientError ? e.message : 'Lỗi đọc file');
+      const data = (await res.json().catch(() => ({}))) as { message?: string };
+      setMsg(
+        res.ok
+          ? 'Import thành công! Hãy tải lại trang để xem dữ liệu mới.'
+          : data.message ?? 'Import thất bại (đã rollback, dữ liệu cũ giữ nguyên).',
+      );
+    } catch {
+      setMsg('Lỗi đọc file hoặc kết nối.');
     } finally {
       setImporting(false);
       setPendingFile(null);

@@ -62,7 +62,8 @@ export function PublicJoinPage() {
       if (e instanceof ApiClientError) {
         if (e.status === 429) { setPageState('rate_limited'); return; }
         if (e.status === 404) { setPageState('not_found'); return; }
-        if (e.status === 400) { setPageState('closed'); return; }
+        // 400 có thể là "registration đã đóng" HOẶC lỗi nhập liệu → hiện message inline
+        // để user sửa, không nhảy thẳng sang màn "đã đóng" gây hiểu lầm.
         setErrMsg(e.message);
       } else {
         setErrMsg('Lỗi kết nối');
