@@ -1,4 +1,5 @@
 // Settings service: đọc/ghi single-row id='default' + đổi mật khẩu admin.
+import { randomBytes } from 'node:crypto';
 import { getDb } from '../db/connection.ts';
 import { sanitizeOptional, sanitizeText } from '../utils/sanitize.ts';
 import { validateQrImage } from '../utils/validate-image.ts';
@@ -46,6 +47,48 @@ export function updateSettings(input: UpdateSettingsInput): Settings {
     ...qrParams,
   });
 
+  return getSettings();
+}
+
+// ── Public report settings ────────────────────────────────────────────────────
+
+// Enable/disable public report. Generates token on first enable; keeps existing token stable.
+export function setPublicReportEnabled(enabled: boolean): Settings {
+  const db = getDb();
+  const current = getSettings();
+  const now = new Date().toISOString();
+
+  let token = current.public_report_token;
+  if (enabled && !token) {
+    // Generate ≥128-bit token (20 random bytes = 160-bit = 40 hex chars)
+    token = randomBytes(20).toString('hex');
+  }
+
+  db.prepare(
+    `UPDATE settings SET public_report_enabled=@enabled, public_report_token=@token, updated_at=@now WHERE id='default'`,
+  ).run({ enabled: enabled ? 1 : 0, token, now });
+
+  return getSettings();
+}
+
+// Toggle show_guests. Independent of enabled state.
+export function setPublicReportShowGuests(show: boolean): Settings {
+  const db = getDb();
+  const now = new Date().toISOString();
+  db.prepare(
+    `UPDATE settings SET public_report_show_guests=@show, updated_at=@now WHERE id='default'`,
+  ).run({ show: show ? 1 : 0, now });
+  return getSettings();
+}
+
+// Regenerate token (admin action). Also ensures enabled stays as-is.
+export function regeneratePublicReportToken(): Settings {
+  const db = getDb();
+  const now = new Date().toISOString();
+  const token = randomBytes(20).toString('hex');
+  db.prepare(
+    `UPDATE settings SET public_report_token=@token, updated_at=@now WHERE id='default'`,
+  ).run({ token, now });
   return getSettings();
 }
 

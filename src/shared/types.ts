@@ -97,6 +97,10 @@ export interface Settings {
   bank_qr_mime: string | null;
   bank_qr_updated_at: string | null;
   updated_at: string;
+  // Public report (phase 8)
+  public_report_enabled: 0 | 1;
+  public_report_token: string | null;
+  public_report_show_guests: 0 | 1;
 }
 
 export interface ApiError {

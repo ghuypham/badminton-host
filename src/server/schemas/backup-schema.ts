@@ -15,6 +15,10 @@ const settingsSchema = z.object({
   bank_qr_mime: z.string().nullable(),
   bank_qr_updated_at: z.string().nullable(),
   updated_at: z.string(),
+  // Phase 8: public report settings — optional so old backups (pre-v8) still import correctly.
+  public_report_enabled: z.number().int().optional(),
+  public_report_token: z.string().nullable().optional(),
+  public_report_show_guests: z.number().int().optional(),
 });
 
 const memberSchema = z.object({

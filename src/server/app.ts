@@ -20,6 +20,8 @@ import { adminBackupRouter } from './routes/admin-backup.ts';
 import { adminReportsRouter } from './routes/admin-reports.ts';
 import { publicSessionsRouter } from './routes/public-sessions.ts';
 import { publicBillsRouter } from './routes/public-bills.ts';
+import { publicReportRouter } from './routes/public-report-route.ts';
+import { adminReportShareRouter } from './routes/admin-report-share.ts';
 
 export function createApp(): express.Express {
   const app = express();
@@ -44,6 +46,7 @@ export function createApp(): express.Express {
   });
   publicTokenHeaders.use('/sessions', publicSessionsRouter);
   publicTokenHeaders.use('/bills', publicBillsRouter);
+  publicTokenHeaders.use('/report', publicReportRouter);
   app.use('/api/public', publicTokenHeaders);
 
   // Admin routes (auth required).
@@ -59,6 +62,7 @@ export function createApp(): express.Express {
   admin.use('/debts', adminDebtsRouter);
   admin.use('/backup', adminBackupRouter);
   admin.use('/reports', adminReportsRouter);
+  admin.use('/report-share', adminReportShareRouter);
   app.use('/api/admin', admin);
 
   // Serve client build + SPA fallback.

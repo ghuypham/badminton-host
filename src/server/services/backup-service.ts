@@ -59,17 +59,24 @@ export async function importData(db: Database.Database, rawJson: unknown): Promi
     db.prepare('DELETE FROM members').run();
     db.prepare("DELETE FROM settings WHERE id != 'placeholder_that_never_exists'").run();
 
-    // Insert settings
+    // Insert settings — include phase-8 public report fields; tolerate absence (old backups → keep DB default 0/NULL).
     const s = data.settings;
     db.prepare(
       `INSERT OR REPLACE INTO settings
          (id, club_name, host_name, bank_name, bank_account_name, bank_account_number,
           payment_note_template, default_rounding, bank_qr_image_base64, bank_qr_mime,
-          bank_qr_updated_at, updated_at)
+          bank_qr_updated_at, updated_at,
+          public_report_enabled, public_report_token, public_report_show_guests)
        VALUES (@id, @club_name, @host_name, @bank_name, @bank_account_name, @bank_account_number,
                @payment_note_template, @default_rounding, @bank_qr_image_base64, @bank_qr_mime,
-               @bank_qr_updated_at, @updated_at)`,
-    ).run(s);
+               @bank_qr_updated_at, @updated_at,
+               @public_report_enabled, @public_report_token, @public_report_show_guests)`,
+    ).run({
+      ...s,
+      public_report_enabled: s.public_report_enabled ?? 0,
+      public_report_token: s.public_report_token ?? null,
+      public_report_show_guests: s.public_report_show_guests ?? 1,
+    });
 
     // Insert members
     const insertMember = db.prepare(

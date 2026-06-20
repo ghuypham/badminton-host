@@ -1,10 +1,18 @@
-// Settings: Club / Payment / QR / đổi mật khẩu / backup (BackupSection nối ở P10).
+// Settings: Club / Payment / QR / đổi mật khẩu / backup / public report share.
 import { useEffect, useState, type FormEvent } from 'react';
 import { api, ApiClientError } from '../api/client.ts';
 import { QrUploader } from '../components/qr-uploader.tsx';
 import { BackupSection } from '../components/backup-section.tsx';
 import { Icon } from '../components/icon.tsx';
 import type { Settings } from '../../shared/types.ts';
+
+// ── Public report share state ─────────────────────────────────────────────────
+
+interface ReportShareState {
+  enabled: boolean;
+  token: string | null;
+  show_guests: boolean;
+}
 
 export function SettingsPage() {
   const [s, setS] = useState<Settings | null>(null);
@@ -121,6 +129,7 @@ export function SettingsPage() {
       </form>
 
       <PasswordSection />
+      <ReportShareSection />
       <BackupSection />
     </div>
   );
@@ -157,5 +166,138 @@ function PasswordSection() {
       {msg && <p className="text-sm text-primary">{msg}</p>}
       <button type="submit" className="btn-secondary">Đổi mật khẩu</button>
     </form>
+  );
+}
+
+// ── Report share section ──────────────────────────────────────────────────────
+
+function ReportShareSection() {
+  const [state, setState] = useState<ReportShareState | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [msg, setMsg] = useState('');
+
+  useEffect(() => {
+    api.get<ReportShareState>('/admin/report-share').then(setState).catch(() => {});
+  }, []);
+
+  if (!state) return null;
+
+  const publicUrl = state.token ? `${window.location.origin}/r/${state.token}` : null;
+
+  const toggleEnabled = async () => {
+    setMsg('');
+    try {
+      const next = await api.put<ReportShareState>('/admin/report-share/enable', {
+        enabled: !state.enabled,
+      });
+      setState(next);
+    } catch (err) {
+      setMsg(err instanceof ApiClientError ? err.message : 'Lỗi');
+    }
+  };
+
+  const toggleGuests = async () => {
+    setMsg('');
+    try {
+      const next = await api.put<ReportShareState>('/admin/report-share/guests', {
+        show: !state.show_guests,
+      });
+      setState(next);
+    } catch (err) {
+      setMsg(err instanceof ApiClientError ? err.message : 'Lỗi');
+    }
+  };
+
+  const copyLink = async () => {
+    if (!publicUrl) return;
+    try {
+      await navigator.clipboard.writeText(publicUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // fallback: select input text
+    }
+  };
+
+  const shareLink = async () => {
+    if (!publicUrl) return;
+    if (navigator.share) {
+      await navigator.share({ title: 'Báo cáo tham gia cầu lông', url: publicUrl });
+    } else {
+      await copyLink();
+    }
+  };
+
+  return (
+    <section className="card space-y-3">
+      <h2 className="section-title">Chia sẻ báo cáo</h2>
+      <p className="text-xs text-muted">
+        Tạo link công khai để thành viên xem thống kê số buổi tham gia (không hiển thị tiền hoặc SĐT).
+      </p>
+
+      {/* Enable toggle */}
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-sm font-medium">Bật link công khai</span>
+        <button
+          type="button"
+          onClick={toggleEnabled}
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+            state.enabled ? 'bg-primary' : 'bg-surface-sunken'
+          }`}
+          aria-pressed={state.enabled}
+        >
+          <span
+            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+              state.enabled ? 'translate-x-6' : 'translate-x-1'
+            }`}
+          />
+        </button>
+      </div>
+
+      {/* Link + actions — visible only when enabled */}
+      {state.enabled && publicUrl && (
+        <>
+          <div className="flex gap-2">
+            <input
+              readOnly
+              value={publicUrl}
+              className="input flex-1 text-xs font-mono truncate"
+              onFocus={(e) => e.target.select()}
+            />
+          </div>
+          <div className="flex gap-2">
+            <button type="button" className="btn-secondary btn-sm flex-1" onClick={copyLink}>
+              <Icon name="copy" size={14} />
+              {copied ? 'Đã chép!' : 'Sao chép'}
+            </button>
+            <button type="button" className="btn-secondary btn-sm flex-1" onClick={shareLink}>
+              <Icon name="share" size={14} />
+              Chia sẻ
+            </button>
+          </div>
+
+          {/* Show guests toggle */}
+          <div className="flex items-center justify-between gap-3 pt-1 border-t border-hairline">
+            <span className="text-sm">Hiện khách vãng lai</span>
+            <button
+              type="button"
+              onClick={toggleGuests}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                state.show_guests ? 'bg-primary' : 'bg-surface-sunken'
+              }`}
+              aria-pressed={state.show_guests}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                  state.show_guests ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+        </>
+      )}
+
+      {msg && <p className="text-sm text-danger">{msg}</p>}
+    </section>
   );
 }

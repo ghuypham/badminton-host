@@ -369,6 +369,76 @@ export function getPaymentHistory(filter: DateFilter): PaymentHistoryEntry[] {
   return rows;
 }
 
+// ── Public participation report (privacy-safe: NO money, NO phone) ────────────
+
+export interface ParticipationEntry {
+  name: string;
+  sessionCount: number;
+}
+
+export interface PublicParticipationReport {
+  generatedAllTime: true;
+  members: ParticipationEntry[];  // has member_id (CLB members)
+  guests?: ParticipationEntry[];  // member_id IS NULL; omitted when show_guests=0
+}
+
+// Count sessions attended (status='attended' OR should_charge=1 — matches how app records
+// confirmed attendance/charges). Excludes soft-deleted sessions/participants.
+// Draft sessions (status='draft') are excluded; only 'open' and 'settled' count.
+export function getPublicParticipationReport(showGuests: boolean): PublicParticipationReport {
+  const db = getDb();
+
+  // CLB members: participant rows linked to a member (member_id NOT NULL)
+  const memberRows = db
+    .prepare(
+      `SELECT m.name AS name, COUNT(*) AS cnt
+       FROM session_participants sp
+       JOIN sessions s ON sp.session_id = s.id
+       JOIN members m ON m.id = sp.member_id
+       WHERE sp.member_id IS NOT NULL
+         AND sp.deleted_at IS NULL
+         AND s.deleted_at IS NULL
+         AND m.deleted_at IS NULL
+         AND s.status IN ('open', 'settled')
+         AND (sp.status = 'attended' OR sp.should_charge = 1)
+       GROUP BY sp.member_id
+       ORDER BY cnt DESC`,
+    )
+    .all() as { name: string; cnt: number }[];
+
+  const members: ParticipationEntry[] = memberRows.map((r) => ({
+    name: r.name,
+    sessionCount: r.cnt,
+  }));
+
+  if (!showGuests) {
+    return { generatedAllTime: true, members };
+  }
+
+  // Guests: participant rows with no member_id (khách vãng lai), grouped by name
+  const guestRows = db
+    .prepare(
+      `SELECT sp.name, COUNT(*) AS cnt
+       FROM session_participants sp
+       JOIN sessions s ON sp.session_id = s.id
+       WHERE sp.member_id IS NULL
+         AND sp.deleted_at IS NULL
+         AND s.deleted_at IS NULL
+         AND s.status IN ('open', 'settled')
+         AND (sp.status = 'attended' OR sp.should_charge = 1)
+       GROUP BY sp.name
+       ORDER BY cnt DESC`,
+    )
+    .all() as { name: string; cnt: number }[];
+
+  const guests: ParticipationEntry[] = guestRows.map((r) => ({
+    name: r.name,
+    sessionCount: r.cnt,
+  }));
+
+  return { generatedAllTime: true, members, guests };
+}
+
 // ── Combined report ───────────────────────────────────────────────────────────
 
 export interface ReportResult {

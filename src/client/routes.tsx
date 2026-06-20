@@ -13,6 +13,7 @@ import { ReportsPage } from './pages/reports-page.tsx';
 import { PublicSessionPage } from './pages/public-session-page.tsx';
 import { PublicJoinPage } from './pages/public-join-page.tsx';
 import { PublicBillPage } from './pages/public-bill-page.tsx';
+import { PublicReportPage } from './pages/public-report-page.tsx';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { authenticated, loading } = useAuth();
@@ -29,6 +30,7 @@ export function AppRoutes() {
       <Route path="/s/:token" element={<PublicSessionPage />} />
       <Route path="/join/:token" element={<PublicJoinPage />} />
       <Route path="/b/:token" element={<PublicBillPage />} />
+      <Route path="/r/:token" element={<PublicReportPage />} />
 
       <Route
         element={
