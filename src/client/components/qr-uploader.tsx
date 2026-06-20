@@ -1,5 +1,6 @@
 // QR uploader: FileReader → base64 → preview. Báo base64+mime lên parent.
 import { useRef } from 'react';
+import { Icon } from './icon.tsx';
 
 interface Props {
   base64: string | null;
@@ -31,13 +32,17 @@ export function QrUploader({ base64, mime, onChange, onClear }: Props) {
             className="w-48 h-48 object-contain rounded-lg border border-hairline bg-white"
           />
           <div className="flex gap-2">
-            <button type="button" className="btn-secondary" onClick={() => inputRef.current?.click()}>Thay QR</button>
-            <button type="button" className="btn-ghost text-danger" onClick={onClear}>Xóa QR</button>
+            <button type="button" className="btn-secondary btn-sm" onClick={() => inputRef.current?.click()}>
+              <Icon name="upload" size={15} /> Thay QR
+            </button>
+            <button type="button" className="btn-ghost btn-sm text-danger" onClick={onClear}>
+              <Icon name="trash" size={15} /> Xóa QR
+            </button>
           </div>
         </div>
       ) : (
-        <button type="button" className="btn-secondary" onClick={() => inputRef.current?.click()}>
-          Tải QR lên
+        <button type="button" className="btn-secondary btn-sm" onClick={() => inputRef.current?.click()}>
+          <Icon name="upload" size={15} /> Tải QR lên
         </button>
       )}
       <input

@@ -9,6 +9,7 @@ import { SessionsPage } from './pages/sessions-page.tsx';
 import { SessionDetailPage } from './pages/session-detail-page.tsx';
 import { SettingsPage } from './pages/settings-page.tsx';
 import { DebtsPage } from './pages/debts-page.tsx';
+import { ReportsPage } from './pages/reports-page.tsx';
 import { PublicSessionPage } from './pages/public-session-page.tsx';
 import { PublicJoinPage } from './pages/public-join-page.tsx';
 import { PublicBillPage } from './pages/public-bill-page.tsx';
@@ -41,6 +42,7 @@ export function AppRoutes() {
         <Route path="/sessions/:id" element={<SessionDetailPage />} />
         <Route path="/members" element={<MembersPage />} />
         <Route path="/debts" element={<DebtsPage />} />
+        <Route path="/reports" element={<ReportsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Route>
 

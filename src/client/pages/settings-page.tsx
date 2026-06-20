@@ -3,6 +3,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { api, ApiClientError } from '../api/client.ts';
 import { QrUploader } from '../components/qr-uploader.tsx';
 import { BackupSection } from '../components/backup-section.tsx';
+import { Icon } from '../components/icon.tsx';
 import type { Settings } from '../../shared/types.ts';
 
 export function SettingsPage() {
@@ -55,26 +56,56 @@ export function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl">Cài đặt</h1>
+      <h1 className="page-title">Cài đặt</h1>
 
-      <form onSubmit={onSave} className="space-y-5">
+      <form onSubmit={onSave} className="space-y-4">
+        {/* Club info */}
         <section className="card space-y-3">
-          <h2 className="text-lg">Câu lạc bộ</h2>
-          <div><label className="label">Tên CLB</label><input className="input" value={s.club_name} onChange={f('club_name')} /></div>
-          <div><label className="label">Người tổ chức</label><input className="input" value={s.host_name ?? ''} onChange={f('host_name')} /></div>
+          <h2 className="section-title">Câu lạc bộ</h2>
+          <div>
+            <label className="label">Tên CLB</label>
+            <input className="input" value={s.club_name} onChange={f('club_name')} />
+          </div>
+          <div>
+            <label className="label">Người tổ chức</label>
+            <input className="input" value={s.host_name ?? ''} onChange={f('host_name')} />
+          </div>
         </section>
 
+        {/* Payment info */}
         <section className="card space-y-3">
-          <h2 className="text-lg">Thanh toán</h2>
-          <div><label className="label">Ngân hàng</label><input className="input" value={s.bank_name ?? ''} onChange={f('bank_name')} /></div>
-          <div><label className="label">Chủ tài khoản</label><input className="input" value={s.bank_account_name ?? ''} onChange={f('bank_account_name')} /></div>
-          <div><label className="label">Số tài khoản</label><input className="input" value={s.bank_account_number ?? ''} onChange={f('bank_account_number')} /></div>
-          <div><label className="label">Mẫu nội dung CK</label><input className="input" value={s.payment_note_template} onChange={f('payment_note_template')} /><p className="text-xs text-muted mt-1">{'{date}'} = ngày, {'{name}'} = tên người chơi</p></div>
-          <div><label className="label">Làm tròn (VND)</label><input className="input" type="number" value={s.default_rounding} onChange={(e) => setS({ ...s, default_rounding: parseInt(e.target.value || '0', 10) })} /></div>
+          <h2 className="section-title">Thanh toán</h2>
+          <div>
+            <label className="label">Ngân hàng</label>
+            <input className="input" value={s.bank_name ?? ''} onChange={f('bank_name')} />
+          </div>
+          <div>
+            <label className="label">Chủ tài khoản</label>
+            <input className="input" value={s.bank_account_name ?? ''} onChange={f('bank_account_name')} />
+          </div>
+          <div>
+            <label className="label">Số tài khoản</label>
+            <input className="input" value={s.bank_account_number ?? ''} onChange={f('bank_account_number')} />
+          </div>
+          <div>
+            <label className="label">Mẫu nội dung CK</label>
+            <input className="input" value={s.payment_note_template} onChange={f('payment_note_template')} />
+            <p className="helper">{'{date}'} = ngày, {'{name}'} = tên người chơi</p>
+          </div>
+          <div>
+            <label className="label">Làm tròn (VND)</label>
+            <input
+              className="input"
+              type="number"
+              value={s.default_rounding}
+              onChange={(e) => setS({ ...s, default_rounding: parseInt(e.target.value || '0', 10) })}
+            />
+          </div>
         </section>
 
+        {/* QR code */}
         <section className="card space-y-3">
-          <h2 className="text-lg">Mã QR ngân hàng</h2>
+          <h2 className="section-title">Mã QR ngân hàng</h2>
           <QrUploader
             base64={displayQr?.base64 ?? null}
             mime={displayQr?.mime ?? null}
@@ -84,7 +115,9 @@ export function SettingsPage() {
         </section>
 
         {msg && <p className="text-sm text-primary">{msg}</p>}
-        <button type="submit" className="btn-primary w-full">Lưu cài đặt</button>
+        <button type="submit" className="btn-primary w-full">
+          <Icon name="check" size={16} /> Lưu cài đặt
+        </button>
       </form>
 
       <PasswordSection />
@@ -112,9 +145,15 @@ function PasswordSection() {
 
   return (
     <form onSubmit={onSubmit} className="card space-y-3">
-      <h2 className="text-lg">Đổi mật khẩu</h2>
-      <div><label className="label">Mật khẩu hiện tại</label><input type="password" className="input" value={cur} onChange={(e) => setCur(e.target.value)} autoComplete="current-password" /></div>
-      <div><label className="label">Mật khẩu mới</label><input type="password" className="input" value={next} onChange={(e) => setNext(e.target.value)} autoComplete="new-password" /></div>
+      <h2 className="section-title">Đổi mật khẩu</h2>
+      <div>
+        <label className="label">Mật khẩu hiện tại</label>
+        <input type="password" className="input" value={cur} onChange={(e) => setCur(e.target.value)} autoComplete="current-password" />
+      </div>
+      <div>
+        <label className="label">Mật khẩu mới</label>
+        <input type="password" className="input" value={next} onChange={(e) => setNext(e.target.value)} autoComplete="new-password" />
+      </div>
       {msg && <p className="text-sm text-primary">{msg}</p>}
       <button type="submit" className="btn-secondary">Đổi mật khẩu</button>
     </form>

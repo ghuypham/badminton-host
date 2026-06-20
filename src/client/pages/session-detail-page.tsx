@@ -9,6 +9,7 @@ import { ParticipantsSection } from '../components/participants-section.tsx';
 import { CostsSection } from '../components/costs-section.tsx';
 import { SplitSection } from '../components/split-section.tsx';
 import { PaymentsSection } from '../components/payments-section.tsx';
+import { Icon } from '../components/icon.tsx';
 import type { Session, SessionCourt, SessionParticipant, CostItem } from '../../shared/types.ts';
 
 interface SessionDetail {
@@ -29,6 +30,12 @@ const STATUS_LABEL: Record<string, string> = {
   draft: 'Nháp',
   open: 'Đang mở',
   settled: 'Đã quyết toán',
+};
+
+const STATUS_BADGE: Record<string, string> = {
+  draft: 'badge',
+  open: 'badge-primary',
+  settled: 'badge-success',
 };
 
 export function SessionDetailPage() {
@@ -63,7 +70,9 @@ export function SessionDetailPage() {
   if (notFound) {
     return (
       <div className="space-y-3">
-        <button className="text-sm text-muted" onClick={() => navigate('/sessions')}>← Danh sách</button>
+        <button className="btn-ghost btn-sm -ml-2" onClick={() => navigate('/sessions')}>
+          <Icon name="arrowLeft" size={16} /> Danh sách
+        </button>
         <p className="text-danger">Không tìm thấy buổi đánh.</p>
       </div>
     );
@@ -108,54 +117,68 @@ export function SessionDetailPage() {
 
   return (
     <div className="space-y-6">
-      <button className="text-sm text-muted" onClick={() => navigate('/sessions')}>← Danh sách</button>
+      {/* Back */}
+      <button className="btn-ghost btn-sm -ml-2" onClick={() => navigate('/sessions')}>
+        <Icon name="arrowLeft" size={16} /> Danh sách
+      </button>
 
       {err && <p className="text-sm text-danger">{err}</p>}
 
       {/* ── Info ── */}
-      <section className="card space-y-3">
+      <section className="card space-y-4">
         <div className="flex items-start justify-between gap-2">
-          <div>
-            <h1 className="text-2xl">{session.title}</h1>
-            <div className="text-sm text-muted">
-              {formatDate(session.session_date)}{session.location ? ` · ${session.location}` : ''}
+          <div className="min-w-0">
+            <h1 className="page-title leading-tight">{session.title}</h1>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-sm text-muted">
+              {session.session_date && (
+                <span className="flex items-center gap-1">
+                  <Icon name="calendar" size={14} />
+                  {formatDate(session.session_date)}
+                </span>
+              )}
+              {session.location && (
+                <span className="flex items-center gap-1">
+                  <Icon name="mapPin" size={14} />
+                  {session.location}
+                </span>
+              )}
             </div>
           </div>
-          <span className="badge">{STATUS_LABEL[session.status] ?? session.status}</span>
+          <span className={STATUS_BADGE[session.status] ?? 'badge'}>
+            {STATUS_LABEL[session.status] ?? session.status}
+          </span>
         </div>
 
         {session.private_note && (
           <p className="text-sm text-muted italic">{session.private_note}</p>
         )}
 
+        {/* Action row */}
         <div className="flex flex-wrap gap-2">
-          <button className="btn-secondary text-xs h-8 px-3" onClick={() => setShowEditSession(true)}>
-            Sửa thông tin
+          <button className="btn-secondary btn-sm" onClick={() => setShowEditSession(true)}>
+            <Icon name="pencil" size={15} /> Sửa thông tin
           </button>
           <button
-            className={`text-xs h-8 px-3 rounded-md border font-medium ${session.registration_enabled === 1 ? 'bg-primary text-on-primary border-primary' : 'border-hairline bg-canvas text-ink'}`}
+            className={`btn-sm ${session.registration_enabled === 1 ? 'btn-primary' : 'btn-secondary'}`}
             onClick={toggleRegistration}
           >
             Đăng ký: {session.registration_enabled === 1 ? 'Đang mở' : 'Đóng'}
           </button>
-          <button
-            className="btn-ghost text-xs h-8 px-3 text-danger"
-            onClick={deleteSession}
-          >
-            Xóa buổi
+          <button className="btn-danger btn-sm" onClick={deleteSession}>
+            <Icon name="trash" size={15} /> Xóa buổi
           </button>
         </div>
 
         {/* Public link */}
-        <div className="rounded-md bg-surface-card px-3 py-2 space-y-1">
-          <div className="text-xs text-muted">Link đăng ký công khai</div>
+        <div className="rounded-lg bg-surface-sunken px-3 py-2.5 space-y-1">
+          <div className="text-xs text-muted font-medium">Link đăng ký công khai</div>
           <div className="flex items-center gap-2">
-            <span className="text-xs break-all text-ink">{publicUrl}</span>
+            <span className="text-xs break-all text-ink flex-1">{publicUrl}</span>
             <button
-              className="btn-ghost text-xs h-7 px-2 shrink-0"
+              className="btn-ghost btn-sm shrink-0"
               onClick={() => navigator.clipboard.writeText(publicUrl)}
             >
-              Copy
+              <Icon name="copy" size={15} /> Copy
             </button>
           </div>
         </div>
@@ -164,33 +187,57 @@ export function SessionDetailPage() {
       {/* ── Courts ── */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg">Sân</h2>
+          <h2 className="section-title">Sân</h2>
           {!settled && (
-            <button className="btn-secondary text-xs h-8 px-3" onClick={() => { setShowAddCourt(true); setEditCourt(null); }}>
-              + Thêm sân
+            <button
+              className="btn-secondary btn-sm"
+              onClick={() => { setShowAddCourt(true); setEditCourt(null); }}
+            >
+              <Icon name="plus" size={16} /> Thêm sân
             </button>
           )}
         </div>
 
-        {courts.length === 0 && <p className="text-sm text-muted">Chưa có sân.</p>}
+        {courts.length === 0 && (
+          <p className="text-sm text-muted">Chưa có sân.</p>
+        )}
+
         <div className="space-y-2">
           {courts.map((c) => (
-            <div key={c.id} className="card flex items-center justify-between gap-2 py-3">
-              <div>
-                <div className="font-medium text-sm">{c.name}</div>
+            <div key={c.id} className="row">
+              <span className="avatar">
+                <Icon name="mapPin" size={18} />
+              </span>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-sm">{c.name}</div>
                 {(c.start_time || c.end_time) && (
-                  <div className="text-xs text-muted">{c.start_time ?? '?'} – {c.end_time ?? '?'}</div>
+                  <div className="flex items-center gap-1 text-xs text-muted">
+                    <Icon name="clock" size={12} />
+                    {c.start_time ?? '?'} – {c.end_time ?? '?'}
+                  </div>
                 )}
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">{c.cost.toLocaleString('vi-VN')}đ</span>
-                {!settled && (
-                  <>
-                    <button className="text-xs text-muted hover:text-ink" onClick={() => { setEditCourt(c); setShowAddCourt(true); }}>Sửa</button>
-                    <button className="text-xs text-danger" onClick={() => deleteCourt(c.id)}>Xóa</button>
-                  </>
-                )}
-              </div>
+              <span className="text-sm font-semibold tnum shrink-0">
+                {c.cost.toLocaleString('vi-VN')}đ
+              </span>
+              {!settled && (
+                <div className="flex gap-0.5 shrink-0">
+                  <button
+                    className="icon-btn"
+                    aria-label="Sửa sân"
+                    onClick={() => { setEditCourt(c); setShowAddCourt(true); }}
+                  >
+                    <Icon name="pencil" size={16} />
+                  </button>
+                  <button
+                    className="icon-btn-danger"
+                    aria-label="Xóa sân"
+                    onClick={() => deleteCourt(c.id)}
+                  >
+                    <Icon name="trash" size={16} />
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>

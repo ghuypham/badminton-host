@@ -1,6 +1,7 @@
 // BackupSection: export (blob download) + import (file picker + confirm).
 // Used inside settings-page.tsx.
 import { useRef, useState } from 'react';
+import { Icon } from './icon.tsx';
 
 const MAX_IMPORT_BYTES = 25 * 1024 * 1024;
 
@@ -69,19 +70,19 @@ export function BackupSection() {
 
   return (
     <section className="card space-y-3">
-      <h2 className="text-lg">Sao lưu dữ liệu</h2>
+      <h2 className="section-title">Sao lưu dữ liệu</h2>
 
       <button type="button" className="btn-secondary w-full" onClick={onExport}>
-        Xuất dữ liệu (JSON)
+        <Icon name="download" size={16} /> Xuất dữ liệu (JSON)
       </button>
 
       <button type="button" className="btn-secondary w-full" onClick={() => fileRef.current?.click()}>
-        Nhập dữ liệu từ file…
+        <Icon name="upload" size={16} /> Nhập dữ liệu từ file…
       </button>
       <input ref={fileRef} type="file" accept="application/json,.json" className="hidden" onChange={onFileChange} />
 
       {pendingFile && (
-        <div className="space-y-2 border border-warning rounded-md p-3">
+        <div className="space-y-2 border border-warning rounded-lg p-3">
           <p className="text-sm text-ink">
             Nhập file: <strong>{pendingFile.name}</strong>. Thao tác này sẽ ghi đè toàn bộ dữ liệu hiện tại.
           </p>

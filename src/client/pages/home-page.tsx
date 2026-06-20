@@ -1,14 +1,17 @@
-// Trang chủ: tổng quan buổi sắp tới, pending, tổng công nợ. Số liệu nối ở P4/P9.
+// Trang chủ: tổng quan buổi sắp tới, pending, tổng công nợ.
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api/client.ts';
 import { formatVnd, formatDate } from '../lib/format.ts';
+import { Icon } from '../components/icon.tsx';
 
 interface HomeStats {
   upcomingSessions: { id: number; title: string; session_date: string; status: string }[];
   pendingCount: number;
   totalDebt: number;
 }
+
+const STATUS: Record<string, string> = { draft: 'Nháp', open: 'Đang mở', settled: 'Quyết toán' };
 
 export function HomePage() {
   const [stats, setStats] = useState<HomeStats | null>(null);
@@ -18,41 +21,87 @@ export function HomePage() {
   }, []);
 
   return (
-    <div className="space-y-5">
-      <h1 className="text-2xl">Tổng quan</h1>
+    <div className="space-y-6">
+      <h1 className="page-title">Tổng quan</h1>
 
       <div className="grid grid-cols-2 gap-3">
-        <div className="card">
-          <div className="text-xs text-muted">Chờ duyệt</div>
-          <div className="text-2xl font-display">{stats?.pendingCount ?? '–'}</div>
-        </div>
-        <div className="card">
-          <div className="text-xs text-muted">Tổng công nợ</div>
-          <div className="text-2xl font-display">{stats ? formatVnd(stats.totalDebt) : '–'}</div>
-        </div>
+        <Link to="/sessions" className="card-tap">
+          <div className="flex items-center justify-between">
+            <span className="flex items-center justify-center h-9 w-9 rounded-lg bg-warning-soft text-warning">
+              <Icon name="clock" size={18} />
+            </span>
+            <Icon name="chevronRight" size={16} className="text-muted" />
+          </div>
+          <div className="mt-3 text-3xl font-display tnum leading-none">{stats?.pendingCount ?? '–'}</div>
+          <div className="mt-1 text-xs text-muted">Chờ duyệt</div>
+        </Link>
+
+        <Link to="/debts" className="card-tap">
+          <div className="flex items-center justify-between">
+            <span className="flex items-center justify-center h-9 w-9 rounded-lg bg-danger-soft text-danger">
+              <Icon name="wallet" size={18} />
+            </span>
+            <Icon name="chevronRight" size={16} className="text-muted" />
+          </div>
+          <div className="mt-3 text-2xl font-display tnum leading-none">
+            {stats ? formatVnd(stats.totalDebt) : '–'}
+          </div>
+          <div className="mt-1 text-xs text-muted">Tổng công nợ</div>
+        </Link>
       </div>
 
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-lg">Buổi sắp tới</h2>
-          <Link to="/sessions" className="text-sm text-primary">Tất cả</Link>
+      {/* Reports shortcut */}
+      <Link to="/reports" className="row card-tap">
+        <span className="flex items-center justify-center h-9 w-9 rounded-lg bg-primary-soft text-primary shrink-0">
+          <Icon name="receipt" size={18} />
+        </span>
+        <div className="flex-1 min-w-0">
+          <div className="font-semibold text-sm">Báo cáo & thống kê</div>
+          <div className="text-xs text-muted">Xem tổng quan tài chính, buổi đánh, thành viên</div>
         </div>
-        <div className="space-y-2">
-          {stats?.upcomingSessions.length ? (
-            stats.upcomingSessions.map((s) => (
-              <Link key={s.id} to={`/sessions/${s.id}`} className="card flex justify-between items-center">
-                <div>
-                  <div className="font-medium">{s.title}</div>
+        <Icon name="chevronRight" size={16} className="text-muted shrink-0" />
+      </Link>
+
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="section-title">Buổi sắp tới</h2>
+          <Link to="/sessions" className="text-sm text-primary font-medium">Tất cả</Link>
+        </div>
+
+        {stats?.upcomingSessions.length ? (
+          <div className="space-y-2">
+            {stats.upcomingSessions.map((s) => (
+              <Link key={s.id} to={`/sessions/${s.id}`} className="row">
+                <span className="avatar">
+                  <Icon name="calendar" size={18} />
+                </span>
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold truncate">{s.title}</div>
                   <div className="text-xs text-muted">{formatDate(s.session_date)}</div>
                 </div>
-                <span className="badge">{s.status}</span>
+                <span className="badge-primary">{STATUS[s.status] ?? s.status}</span>
+                <Icon name="chevronRight" size={18} className="text-muted shrink-0" />
               </Link>
-            ))
-          ) : (
-            <p className="text-sm text-muted">Chưa có buổi nào.</p>
-          )}
-        </div>
-      </div>
+            ))}
+          </div>
+        ) : (
+          <EmptyState />
+        )}
+      </section>
+    </div>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="card flex flex-col items-center text-center py-10 gap-3">
+      <span className="flex items-center justify-center h-14 w-14 rounded-full bg-surface-sunken text-muted">
+        <Icon name="calendar" size={26} />
+      </span>
+      <p className="text-sm text-muted">Chưa có buổi đánh nào.</p>
+      <Link to="/sessions" className="btn-primary btn-sm">
+        <Icon name="plus" size={16} /> Tạo buổi đầu tiên
+      </Link>
     </div>
   );
 }

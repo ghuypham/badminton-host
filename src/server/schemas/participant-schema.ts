@@ -9,7 +9,7 @@ export const addParticipantFromMemberSchema = z.object({
 export const addGuestParticipantSchema = z.object({
   name: z.string().min(1).max(100),
   phone: z.string().max(20).nullish(),
-  skill_level: z.number().int().min(0).max(5).nullish(),
+  skill_level: z.number().int().min(0).max(10).nullish(),
   status: z.enum(['going', 'pending']).default('going'),
   note: z.string().max(500).nullish(),
 });
@@ -23,7 +23,7 @@ export const updateParticipantSchema = z.object({
 export const publicRegisterSchema = z.object({
   name: z.string().min(1).max(100),
   phone: z.string().max(20).nullish(),
-  skill_level: z.number().int().min(0).max(5).nullish(),
+  skill_level: z.number().int().min(0).max(10).nullish(),
   note: z.string().max(500).nullish(),
   // Honeypot field: bots will fill this, humans won't
   website: z.string().max(0).optional(),

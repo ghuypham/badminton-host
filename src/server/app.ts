@@ -17,6 +17,7 @@ import { adminSplitRouter } from './routes/admin-split.ts';
 import { adminPaymentsRouter } from './routes/admin-payments.ts';
 import { adminDebtsRouter } from './routes/admin-debts.ts';
 import { adminBackupRouter } from './routes/admin-backup.ts';
+import { adminReportsRouter } from './routes/admin-reports.ts';
 import { publicSessionsRouter } from './routes/public-sessions.ts';
 import { publicBillsRouter } from './routes/public-bills.ts';
 
@@ -57,6 +58,7 @@ export function createApp(): express.Express {
   admin.use('/payments', adminPaymentsRouter);
   admin.use('/debts', adminDebtsRouter);
   admin.use('/backup', adminBackupRouter);
+  admin.use('/reports', adminReportsRouter);
   app.use('/api/admin', admin);
 
   // Serve client build + SPA fallback.

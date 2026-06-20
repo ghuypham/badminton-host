@@ -3,7 +3,12 @@ import { useEffect, useState } from 'react';
 import { api, ApiClientError } from '../api/client.ts';
 import { formatDate, formatVnd } from '../lib/format.ts';
 import { MemberForm } from '../components/member-form.tsx';
+import { Icon } from '../components/icon.tsx';
+import { SKILL_LEVELS, skillLabel } from '../lib/skill-levels.ts';
 import type { Member, MemberType } from '../../shared/types.ts';
+
+const initials = (name: string) =>
+  name.trim().split(/\s+/).slice(-2).map((w) => w[0]?.toUpperCase() ?? '').join('') || '?';
 
 interface HistoryRow {
   id: number;
@@ -81,39 +86,42 @@ export function MembersPage() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl">Thành viên</h1>
-        <button className="btn-primary" onClick={() => { setEditMember(null); setShowForm(true); }}>
-          + Thêm
+        <h1 className="page-title">Thành viên</h1>
+        <button className="btn-primary btn-sm" onClick={() => { setEditMember(null); setShowForm(true); }}>
+          <Icon name="plus" size={16} /> Thêm
         </button>
       </div>
 
       {/* Search */}
-      <input
-        className="input"
-        placeholder="Tìm tên hoặc số điện thoại…"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-      />
+      <div className="relative">
+        <Icon name="search" size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted" />
+        <input
+          className="input pl-10"
+          placeholder="Tìm tên hoặc số điện thoại…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
 
       {/* Filter chips */}
       <div className="flex flex-wrap gap-2">
         {(['', 'fixed', 'guest'] as const).map((t) => (
           <button
             key={t}
-            className={`text-xs h-7 px-3 rounded-full border ${filterType === t ? 'bg-primary text-on-primary border-primary' : 'border-hairline bg-canvas'}`}
+            className={`chip ${filterType === t ? 'chip-active' : ''}`}
             onClick={() => setFilterType(t)}
           >
             {t === '' ? 'Tất cả' : t === 'fixed' ? 'Cố định' : 'Khách'}
           </button>
         ))}
         <select
-          className="text-xs h-7 px-2 rounded-full border border-hairline bg-canvas"
+          className="chip"
           value={filterSkill}
           onChange={(e) => setFilterSkill(e.target.value === '' ? '' : parseInt(e.target.value, 10))}
         >
           <option value="">Trình độ: tất cả</option>
-          {[0, 1, 2, 3, 4, 5].map((n) => (
-            <option key={n} value={n}>Lv.{n}</option>
+          {SKILL_LEVELS.map((label, i) => (
+            <option key={i} value={i}>{label}</option>
           ))}
         </select>
       </div>
@@ -122,27 +130,37 @@ export function MembersPage() {
 
       {/* List */}
       <div className="space-y-2">
-        {members.length === 0 && <p className="text-sm text-muted">Không có thành viên.</p>}
+        {members.length === 0 && (
+          <div className="card flex flex-col items-center text-center py-10 gap-3">
+            <span className="flex items-center justify-center h-14 w-14 rounded-full bg-surface-sunken text-muted">
+              <Icon name="users" size={26} />
+            </span>
+            <p className="text-sm text-muted">Không có thành viên.</p>
+          </div>
+        )}
         {members.map((m) => (
-          <div key={m.id} className="card flex items-center justify-between gap-2">
-            <button className="flex-1 text-left" onClick={() => openDetail(m)}>
-              <div className="font-medium">{m.name}</div>
-              <div className="text-xs text-muted">
-                {m.phone ?? '—'} · {m.member_type === 'fixed' ? 'Cố định' : 'Khách'} · Lv.{m.skill_level}
+          <div key={m.id} className="row">
+            <span className="avatar">{initials(m.name)}</span>
+            <button className="flex-1 min-w-0 text-left" onClick={() => openDetail(m)}>
+              <div className="font-semibold truncate">{m.name}</div>
+              <div className="text-xs text-muted truncate">
+                {m.phone ?? '—'} · {m.member_type === 'fixed' ? 'Cố định' : 'Khách'} · {skillLabel(m.skill_level)}
               </div>
             </button>
-            <div className="flex gap-1 shrink-0">
+            <div className="flex gap-0.5 shrink-0">
               <button
-                className="btn-ghost text-xs h-7 px-2"
+                className="icon-btn"
+                aria-label="Sửa"
                 onClick={() => { setEditMember(m); setShowForm(true); }}
               >
-                Sửa
+                <Icon name="pencil" size={18} />
               </button>
               <button
-                className="btn-ghost text-xs h-7 px-2 text-danger"
+                className="icon-btn-danger"
+                aria-label="Xóa"
                 onClick={() => deleteMember(m)}
               >
-                Xóa
+                <Icon name="trash" size={18} />
               </button>
             </div>
           </div>
@@ -177,52 +195,63 @@ function MemberDetail({ member, history, loading, onBack, onEdit }: DetailProps)
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <button className="text-sm text-muted hover:text-ink" onClick={onBack}>← Danh sách</button>
-      </div>
+      <button className="btn-ghost btn-sm -ml-2" onClick={onBack}>
+        <Icon name="arrowLeft" size={16} /> Danh sách
+      </button>
 
-      <div className="card space-y-2">
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl">{member.name}</h1>
+      <div className="card space-y-3">
+        <div className="flex items-start gap-3">
+          <span className="avatar h-12 w-12 text-base">{initials(member.name)}</span>
+          <div className="flex-1 min-w-0">
+            <h1 className="font-display text-2xl leading-tight">{member.name}</h1>
             <div className="text-sm text-muted">
-              {member.phone ?? '—'} · {member.member_type === 'fixed' ? 'Cố định' : 'Khách'} · Lv.{member.skill_level}
+              {member.phone ?? '—'} · {member.member_type === 'fixed' ? 'Cố định' : 'Khách'} · {skillLabel(member.skill_level)}
             </div>
             {member.note && <div className="text-sm text-muted italic mt-1">{member.note}</div>}
           </div>
-          <button className="btn-secondary text-xs" onClick={onEdit}>Sửa</button>
+          <button className="btn-secondary btn-sm shrink-0" onClick={onEdit}>
+            <Icon name="pencil" size={15} /> Sửa
+          </button>
         </div>
 
         {totalDebt > 0 && (
-          <div className="rounded-md bg-danger/10 px-3 py-2">
-            <span className="text-sm text-danger font-medium">Công nợ: {formatVnd(totalDebt)}</span>
+          <div className="flex items-center gap-2 rounded-lg bg-danger-soft px-3 py-2.5">
+            <Icon name="wallet" size={18} className="text-danger" />
+            <span className="text-sm text-danger font-semibold tnum">Công nợ: {formatVnd(totalDebt)}</span>
           </div>
         )}
       </div>
 
-      <div>
-        <h2 className="text-lg mb-2">Lịch sử tham gia</h2>
+      <div className="space-y-2">
+        <h2 className="section-title">Lịch sử tham gia</h2>
         {loading && <p className="text-sm text-muted">Đang tải…</p>}
         {!loading && history.length === 0 && <p className="text-sm text-muted">Chưa tham gia buổi nào.</p>}
-        <div className="space-y-2">
-          {history.map((h) => (
-            <div key={h.id} className="card py-3">
-              <div className="flex justify-between items-start">
-                <div>
-                  <div className="font-medium text-sm">{h.title}</div>
-                  <div className="text-xs text-muted">{formatDate(h.session_date)}</div>
-                </div>
-                <div className="text-right">
-                  {h.should_charge === 1 && (
-                    <div className="text-sm font-medium">{formatVnd(h.final_amount)}</div>
-                  )}
-                  <span className="badge text-xs">{h.payment_status}</span>
-                </div>
-              </div>
+        {history.map((h) => (
+          <div key={h.id} className="card flex justify-between items-start gap-2">
+            <div className="min-w-0">
+              <div className="font-semibold text-sm truncate">{h.title}</div>
+              <div className="text-xs text-muted">{formatDate(h.session_date)}</div>
             </div>
-          ))}
-        </div>
+            <div className="text-right shrink-0">
+              {h.should_charge === 1 && (
+                <div className="text-sm font-semibold tnum">{formatVnd(h.final_amount)}</div>
+              )}
+              <PaymentBadge status={h.payment_status} />
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
+}
+
+function PaymentBadge({ status }: { status: string }) {
+  const map: Record<string, [string, string]> = {
+    paid: ['badge-success', 'Đã trả'],
+    partial: ['badge-warning', 'Một phần'],
+    unpaid: ['badge-danger', 'Chưa trả'],
+    needs_review: ['badge-warning', 'Cần kiểm'],
+  };
+  const [cls, label] = map[status] ?? ['badge', status];
+  return <span className={cls}>{label}</span>;
 }

@@ -1,6 +1,8 @@
 // Participants section for session-detail-page: list by status, add member/guest, approve/reject, attendance + charge toggle.
 import { useEffect, useState } from 'react';
 import { api, ApiClientError } from '../api/client.ts';
+import { Icon } from './icon.tsx';
+import { SKILL_LEVELS, skillLabel } from '../lib/skill-levels.ts';
 import type { Member, SessionParticipant, ParticipantStatus } from '../../shared/types.ts';
 
 interface Props {
@@ -18,6 +20,18 @@ const STATUS_LABEL: Record<ParticipantStatus, string> = {
   cancelled: 'Hủy',
   rejected: 'Từ chối',
 };
+
+// Maps attendance status to badge style
+const STATUS_BADGE: Record<string, string> = {
+  attended: 'badge-success',
+  absent: 'badge',
+  going: 'badge-primary',
+  cancelled: 'badge',
+  rejected: 'badge',
+};
+
+const initials = (name: string) =>
+  name.trim().split(/\s+/).slice(-2).map((w) => w[0]?.toUpperCase() ?? '').join('') || '?';
 
 export function ParticipantsSection({ sessionId, participants, onChange, settled }: Props) {
   const [members, setMembers] = useState<Member[]>([]);
@@ -60,15 +74,22 @@ export function ParticipantsSection({ sessionId, participants, onChange, settled
 
   return (
     <div className="space-y-4">
+      {/* Section header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-lg">Người chơi ({participants.length})</h2>
+        <h2 className="section-title">Người chơi ({participants.length})</h2>
         {!settled && (
           <div className="flex gap-2">
-            <button className="btn-secondary text-xs h-8 px-3" onClick={() => { setShowAddMember(true); setShowAddGuest(false); }}>
-              + Thành viên
+            <button
+              className="btn-secondary btn-sm"
+              onClick={() => { setShowAddMember(true); setShowAddGuest(false); }}
+            >
+              <Icon name="plus" size={16} /> Thành viên
             </button>
-            <button className="btn-secondary text-xs h-8 px-3" onClick={() => { setShowAddGuest(true); setShowAddMember(false); }}>
-              + Khách
+            <button
+              className="btn-secondary btn-sm"
+              onClick={() => { setShowAddGuest(true); setShowAddMember(false); }}
+            >
+              <Icon name="plus" size={16} /> Khách
             </button>
           </div>
         )}
@@ -94,59 +115,77 @@ export function ParticipantsSection({ sessionId, participants, onChange, settled
         />
       )}
 
+      {/* Pending approval queue */}
       {pending.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-sm font-medium text-muted">Chờ duyệt ({pending.length})</h3>
+          <p className="text-xs font-semibold text-muted uppercase tracking-wide">
+            Chờ duyệt ({pending.length})
+          </p>
           {pending.map((p) => (
-            <div key={p.id} className="card flex items-center justify-between gap-2 py-3">
-              <div>
-                <div className="font-medium text-sm">{p.name}</div>
+            <div key={p.id} className="card flex items-center gap-3">
+              <span className="avatar">{initials(p.name)}</span>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-sm truncate">{p.name}</div>
                 {p.phone && <div className="text-xs text-muted">{p.phone}</div>}
                 {p.note && <div className="text-xs text-muted italic">{p.note}</div>}
               </div>
-              <div className="flex gap-1 shrink-0">
-                <button className="btn-primary text-xs h-7 px-2" onClick={() => approve(p.id)}>Duyệt</button>
-                <button className="btn-ghost text-xs h-7 px-2 text-danger" onClick={() => reject(p.id)}>Từ chối</button>
+              <div className="flex gap-1.5 shrink-0">
+                <button className="btn-primary btn-sm" onClick={() => approve(p.id)}>
+                  <Icon name="check" size={14} /> Duyệt
+                </button>
+                <button className="btn-danger btn-sm" onClick={() => reject(p.id)}>
+                  <Icon name="x" size={14} /> Từ chối
+                </button>
               </div>
             </div>
           ))}
         </div>
       )}
 
+      {/* Active participants list */}
       {active.length > 0 && (
         <div className="space-y-2">
           {active.map((p) => (
-            <div key={p.id} className="card space-y-2 py-3">
-              <div className="flex items-center justify-between gap-2">
-                <div>
-                  <div className="font-medium text-sm">{p.name}</div>
+            <div key={p.id} className="card space-y-3">
+              {/* Name row */}
+              <div className="flex items-center gap-3">
+                <span className="avatar">{initials(p.name)}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-sm truncate">{p.name}</div>
                   {p.phone && <div className="text-xs text-muted">{p.phone}</div>}
                 </div>
-                <span className="badge text-xs">{STATUS_LABEL[p.status]}</span>
+                <span className={STATUS_BADGE[p.status] ?? 'badge'}>
+                  {STATUS_LABEL[p.status]}
+                </span>
+                {!settled && (
+                  <button
+                    className="icon-btn-danger"
+                    aria-label="Xóa"
+                    onClick={() => remove(p.id)}
+                  >
+                    <Icon name="trash" size={16} />
+                  </button>
+                )}
               </div>
 
+              {/* Attendance + charge chips */}
               {!settled && (
-                <div className="flex flex-wrap gap-1">
+                <div className="flex flex-wrap gap-1.5">
                   {(['attended', 'absent', 'cancelled'] as ParticipantStatus[]).map((s) => (
                     <button
                       key={s}
-                      className={`text-xs h-7 px-2 rounded-md border ${p.status === s ? 'bg-primary text-on-primary border-primary' : 'border-hairline bg-canvas text-ink'}`}
+                      className={`chip ${p.status === s ? 'chip-active' : ''}`}
                       onClick={() => setStatus(p.id, s)}
                     >
                       {STATUS_LABEL[s]}
                     </button>
                   ))}
+                  {/* Charge toggle chip */}
                   <button
-                    className={`text-xs h-7 px-2 rounded-md border ${p.should_charge === 1 ? 'bg-surface-card border-hairline text-ink' : 'border-hairline bg-canvas text-muted'}`}
+                    className={`chip ${p.should_charge === 1 ? 'chip-active' : ''}`}
                     onClick={() => toggleCharge(p)}
                   >
                     {p.should_charge === 1 ? 'Tính tiền' : 'Không tính'}
-                  </button>
-                  <button
-                    className="text-xs h-7 px-2 rounded-md border border-hairline text-danger"
-                    onClick={() => remove(p.id)}
-                  >
-                    Xóa
                   </button>
                 </div>
               )}
@@ -155,8 +194,14 @@ export function ParticipantsSection({ sessionId, participants, onChange, settled
         </div>
       )}
 
+      {/* Empty state */}
       {participants.length === 0 && (
-        <p className="text-sm text-muted">Chưa có người chơi.</p>
+        <div className="card flex flex-col items-center text-center py-10 gap-3">
+          <span className="flex items-center justify-center h-14 w-14 rounded-full bg-surface-sunken text-muted">
+            <Icon name="users" size={26} />
+          </span>
+          <p className="text-sm text-muted">Chưa có người chơi.</p>
+        </div>
       )}
     </div>
   );
@@ -189,22 +234,30 @@ function AddMemberPicker({ sessionId, members, existing, onAdded, onClose }: Add
   };
 
   return (
-    <div className="card space-y-2 border-primary">
+    <div className="card space-y-3 border-primary">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium">Chọn thành viên</h3>
-        <button className="text-xs text-muted" onClick={onClose}>Đóng</button>
+        <h3 className="font-semibold text-sm">Chọn thành viên</h3>
+        <button className="icon-btn" aria-label="Đóng" onClick={onClose}>
+          <Icon name="x" size={16} />
+        </button>
       </div>
       {err && <p className="text-xs text-danger">{err}</p>}
-      {available.length === 0 && <p className="text-xs text-muted">Không còn thành viên nào.</p>}
-      <div className="space-y-1 max-h-48 overflow-y-auto">
+      {available.length === 0 && (
+        <p className="text-sm text-muted">Không còn thành viên nào.</p>
+      )}
+      <div className="space-y-1 max-h-48 overflow-y-auto -mx-1">
         {available.map((m) => (
           <button
             key={m.id}
-            className="w-full text-left px-3 py-2 rounded-md hover:bg-surface-card text-sm"
+            className="w-full flex items-center gap-2.5 text-left px-3 py-2 rounded-lg hover:bg-surface-sunken transition-colors"
             disabled={busy}
             onClick={() => add(m.id)}
           >
-            {m.name} {m.phone ? `· ${m.phone}` : ''} · Lv.{m.skill_level}
+            <span className="avatar h-8 w-8 text-xs shrink-0">{m.name.trim()[0]?.toUpperCase() ?? '?'}</span>
+            <span className="flex-1 min-w-0">
+              <span className="block text-sm font-medium truncate">{m.name}</span>
+              <span className="text-xs text-muted">{m.phone ? `${m.phone} · ` : ''}{skillLabel(m.skill_level)}</span>
+            </span>
           </button>
         ))}
       </div>
@@ -246,17 +299,37 @@ function AddGuestForm({ sessionId, onAdded, onClose }: AddGuestFormProps) {
   };
 
   return (
-    <form onSubmit={onSubmit} className="card space-y-2 border-primary">
+    <form onSubmit={onSubmit} className="card space-y-3 border-primary">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium">Thêm khách</h3>
-        <button type="button" className="text-xs text-muted" onClick={onClose}>Đóng</button>
+        <h3 className="font-semibold text-sm">Thêm khách</h3>
+        <button type="button" className="icon-btn" aria-label="Đóng" onClick={onClose}>
+          <Icon name="x" size={16} />
+        </button>
       </div>
-      <input className="input" placeholder="Tên *" value={name} onChange={(e) => setName(e.target.value)} required />
-      <input className="input" placeholder="Số điện thoại" value={phone} onChange={(e) => setPhone(e.target.value)} />
-      <input type="number" className="input" placeholder="Trình độ (0-5)" min={0} max={5} value={skill} onChange={(e) => setSkill(parseInt(e.target.value || '0', 10))} />
-      <input className="input" placeholder="Ghi chú" value={note} onChange={(e) => setNote(e.target.value)} />
+      <div>
+        <label className="label">Tên *</label>
+        <input className="input" placeholder="Nguyễn Văn A" value={name} onChange={(e) => setName(e.target.value)} required />
+      </div>
+      <div>
+        <label className="label">Số điện thoại</label>
+        <input className="input" placeholder="09xx…" value={phone} onChange={(e) => setPhone(e.target.value)} />
+      </div>
+      <div>
+        <label className="label">Trình độ</label>
+        <select className="input" value={skill} onChange={(e) => setSkill(parseInt(e.target.value, 10))}>
+          {SKILL_LEVELS.map((label, i) => (
+            <option key={i} value={i}>{label}</option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label className="label">Ghi chú</label>
+        <input className="input" placeholder="Thông tin thêm…" value={note} onChange={(e) => setNote(e.target.value)} />
+      </div>
       {err && <p className="text-xs text-danger">{err}</p>}
-      <button type="submit" className="btn-primary w-full" disabled={busy}>{busy ? 'Đang thêm…' : 'Thêm khách'}</button>
+      <button type="submit" className="btn-primary w-full" disabled={busy}>
+        {busy ? 'Đang thêm…' : 'Thêm khách'}
+      </button>
     </form>
   );
 }
