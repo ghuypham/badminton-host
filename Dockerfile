@@ -12,7 +12,8 @@ RUN apt-get update \
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
-RUN npm install --no-audit --no-fund
+# --include=dev: cần devDeps (vite, tsc, tailwind) để build dù NODE_ENV=production.
+RUN npm ci --include=dev --no-audit --no-fund
 
 COPY . .
 
