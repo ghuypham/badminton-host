@@ -2,6 +2,7 @@ services:
   app:
     build: .
     image: badminton-host
+    container_name: badminton-host
     restart: unless-stopped
     ports:
       - "${HOST_PORT:-3000}:3000"
